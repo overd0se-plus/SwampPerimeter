@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Swamp Perimeter: Outpost</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Игровые шрифты с поддержкой кириллицы: Russo One (заголовки/акценты) и Exo 2 (тактический UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700;800&family=Russo+One&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            background-color: #0b0f0d;
+            color: #d6dfd9;
+            font-family: 'Exo 2', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            max-height: 860px;
+            background: #141c18;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.95);
+            overflow: hidden;
+            border-left: 1px solid #26332c;
+            border-right: 1px solid #26332c;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            cursor: grab;
+        }
+        canvas:active {
+            cursor: grabbing;
+        }
+        /* Выразительный игровой шрифт для заголовков, кнопок и счетчиков */
+        .font-military {
+            font-family: 'Russo One', sans-serif;
+            letter-spacing: 0.04em;
+        }
+        .font-tactical {
+            font-family: 'Exo 2', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 19, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b4f44;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <!-- 3D Сцена -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Верхняя панель (Ресурсы, Звук, Язык, Полный сброс) -->
+    <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start pointer-events-none z-20">
+        <!-- Статистика в бою -->
+        <div id="hud-stats" class="hidden flex-col gap-1.5 pointer-events-auto">
+            <div class="bg-[#111915]/90 border border-[#2d3d34] px-3 py-1.5 rounded-xl backdrop-blur-md flex items-center gap-3 shadow-lg">
+                <span class="text-amber-400 font-military text-sm flex items-center gap-1">⚙️ <span id="scrap-val">60</span></span>
+                <span class="text-[#566b60] text-xs">|</span>
+                <span class="text-emerald-400 font-military text-sm flex items-center gap-1">🛡️ <span id="hp-val">100</span>%</span>
+            </div>
+            <div class="bg-[#111915]/90 border border-[#2d3d34] px-3 py-1 rounded-xl backdrop-blur-md text-xs text-[#9cb3a6] font-tactical font-bold flex items-center gap-2">
+                <span><span data-i18n="wave">ВОЛНА</span>: <span id="wave-val" class="text-white font-military">1</span></span>
+                <span class="text-[#45594e]">•</span>
+                <span id="wave-status" class="text-amber-400/90" data-i18n="prepPhase">Ожидание</span>
+            </div>
+        </div>
+
+        <!-- Кнопки настроек (Сброс прогресса, Язык и Звук) -->
+        <div class="flex gap-1.5 ml-auto pointer-events-auto">
+            <button id="btn-open-wipe" title="Полный сброс игры" class="hidden bg-[#2b1616]/90 hover:bg-[#422020] border border-[#5e2c2c] text-red-300 text-xs font-military px-2.5 py-2 rounded-xl transition shadow-md cursor-pointer">
+                🔄
+            </button>
+            <button id="btn-lang" class="bg-[#16211c]/90 hover:bg-[#22332a] border border-[#32473c] text-[#c7d6cd] text-xs font-military px-3 py-2 rounded-xl transition shadow-md cursor-pointer">
+                RU
+            </button>
+            <button id="btn-sound" class="bg-[#16211c]/90 hover:bg-[#22332a] border border-[#32473c] text-[#c7d6cd] text-xs font-bold px-3 py-2 rounded-xl transition shadow-md cursor-pointer">
+                🔊
+            </button>
+        </div>
+    </div>
+
+    <!-- ГЛАВНОЕ МЕНЮ -->
+    <div id="main-menu" class="absolute inset-0 bg-gradient-to-b from-[#0d1411]/85 via-[#131d18]/75 to-[#0a100d]/95 flex flex-col justify-between items-center p-8 z-30 backdrop-blur-[2px]">
+        <div class="mt-16 text-center">
+            <div class="inline-block px-3.5 py-1 mb-3 rounded-full bg-[#1e2c25] border border-[#384f43] text-[11px] tracking-widest text-[#8ba697] uppercase font-bold">
+                Tactical Outpost TD
+            </div>
+            <h1 class="font-military text-4xl tracking-wider text-[#e2ece6] drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)] leading-tight">
+                SWAMP<br><span class="text-[#69967c]">PERIMETER</span>
+            </h1>
+            <p data-i18n="subtitle" class="mt-3 text-xs font-medium text-[#98b0a3] max-w-[260px] mx-auto leading-relaxed">
+                Удерживай периметр в сумерках. Нажимай на позиции внутри лагеря, чтобы расставлять бойцов.
+            </p>
+        </div>
+
+        <!-- Кнопка НАЧАТЬ по центру внизу -->
+        <div class="w-full mb-6 flex justify-center">
+            <button id="btn-start" class="w-4/5 py-4 bg-gradient-to-r from-[#365745] to-[#48705a] hover:from-[#436954] hover:to-[#56856a] active:scale-95 text-[#eff7f2] font-military text-lg tracking-widest rounded-xl border border-[#65967b]/50 shadow-[0_8px_25px_rgba(24,41,32,0.85)] transition cursor-pointer uppercase">
+                <span data-i18n="start">НАЧАТЬ</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ИГРОВОЙ ИНТЕРФЕЙС (Кнопка "В БОЙ!" внизу экрана) -->
+    <div id="game-ui" class="hidden absolute inset-0 pointer-events-none flex flex-col justify-end pb-7 z-20">
+        <div class="flex flex-col items-center gap-2">
+            <button id="btn-battle" class="pointer-events-auto px-10 py-3.5 bg-gradient-to-b from-[#85512c] to-[#573218] hover:from-[#9c6036] hover:to-[#6e4020] active:scale-95 text-[#fcece0] font-military text-base tracking-wider rounded-2xl border border-[#c48354]/60 shadow-[0_8px_25px_rgba(0,0,0,0.85)] transition flex items-center gap-2.5 cursor-pointer">
+                <span>⚔️</span>
+                <span data-i18n="battle">В БОЙ!</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ВСПЛЫВАЮЩЕЕ МЕНЮ ВОЗЛЕ ВЫБРАННОЙ ТОЧКИ -->
+    <div id="slot-modal" class="hidden absolute w-56 bg-[#111915]/95 border border-[#425e4f] rounded-xl p-2.5 z-30 shadow-[0_10px_30px_rgba(0,0,0,0.95)] backdrop-blur-md">
+        <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-[#25362d]">
+            <div class="leading-tight">
+                <span class="text-[10px] uppercase tracking-wider text-[#789183] font-bold block" id="modal-slot-title">Позиция #1</span>
+                <h3 class="font-military text-xs text-[#e4efe8]" id="modal-unit-name">Свободная точка</h3>
+            </div>
+            <button id="btn-close-modal" class="w-6 h-6 rounded-md bg-[#1b2922] hover:bg-[#273b31] text-[#9cb3a6] flex items-center justify-center text-xs font-bold cursor-pointer">
+                ✕
+            </button>
+        </div>
+
+        <!-- Список бойцов для найма -->
+        <div id="modal-hire-list" class="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1"></div>
+
+        <!-- Управление нанятым бойцом -->
+        <div id="modal-manage-view" class="hidden flex-col gap-2">
+            <div class="bg-[#17241e] border border-[#293d33] rounded-lg p-2 flex justify-between items-center text-[10px]">
+                <div>
+                    <div class="text-[#87a193] font-semibold" data-i18n="statsDmg">Урон / Темп</div>
+                    <div class="font-military text-xs text-white mt-0.5" id="manage-stats">8 DMG · 1.2/с</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-[#87a193] font-semibold" data-i18n="statsRange">Дальность</div>
+                    <div class="font-military text-xs text-emerald-400 mt-0.5" id="manage-range">13 м</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-1.5">
+                <button id="btn-upgrade-unit" class="py-1.5 px-2 rounded-lg font-military text-[10px] bg-[#395e4a] hover:bg-[#47755c] text-white transition flex flex-col items-center justify-center cursor-pointer shadow">
+                    <span data-i18n="upgradeBtn">УЛУЧШИТЬ</span>
+                    <span class="text-[10px] text-amber-300 mt-0.5" id="upgrade-cost-label">⚙️ 72</span>
+                </button>
+                <button id="btn-dismiss-unit" class="py-1.5 px-2 rounded-lg font-military text-[10px] bg-[#4a2626] hover:bg-[#613232] text-red-200 border border-red-900/50 transition flex flex-col items-center justify-center cursor-pointer">
+                    <span data-i18n="dismissBtn">УВОЛИТЬ</span>
+                    <span class="text-[10px] text-emerald-300 mt-0.5" id="dismiss-refund-label">+⚙️ 35</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран прорыва обороны (Переигровка текущей волны без потери бойцов и шестеренок) -->
+    <div id="gameover-modal" class="hidden absolute inset-0 bg-[#0a0f0c]/90 z-40 flex flex-col justify-center items-center p-6 text-center backdrop-blur-sm">
+        <div class="w-14 h-14 rounded-2xl bg-red-950/70 border border-red-700/50 flex items-center justify-center text-2xl mb-3 shadow-lg">
+            ⚠️
+        </div>
+        <h2 class="font-military text-2xl text-red-400 mb-2 tracking-wide" data-i18n="gameOver">ПЕРИМЕТР ПРОРВАН</h2>
+        <p class="text-xs font-medium text-[#a3b8ac] max-w-[270px] mb-6 leading-relaxed" data-i18n="breachDesc">
+            Забор разрушен, но отряд уцелел. Все бойцы и шестеренки сохранены — восстановите периметр и переиграйте волну!
+        </p>
+        <button id="btn-retry-wave" class="px-8 py-3.5 bg-gradient-to-r from-[#385947] to-[#48705a] hover:from-[#466e58] hover:to-[#56856a] active:scale-95 text-white font-military text-sm tracking-wider rounded-xl border border-[#5d8f73] shadow-lg transition cursor-pointer">
+            <span data-i18n="retryWave">ЕЩЕ РАЗ!</span>
+        </button>
+    </div>
+
+    <!-- Модальное окно полного сброса прогресса -->
+    <div id="wipe-modal" class="hidden absolute inset-0 bg-[#080c0a]/90 z-50 flex flex-col justify-center items-center p-6 text-center backdrop-blur-sm">
+        <div class="bg-[#121a16] border border-[#3d2626] rounded-2xl p-5 max-w-[300px] w-full shadow-2xl">
+            <h3 class="font-military text-lg text-red-400 mb-2" data-i18n="wipeTitle">ПОЛНЫЙ СБРОС?</h3>
+            <p class="text-xs text-[#9cb3a6] mb-5 leading-relaxed" data-i18n="wipeDesc">
+                Весь прогресс, нанятые бойцы, улучшения, шестеренки и пройденные волны будут полностью удалены.
+            </p>
+            <div class="grid grid-cols-2 gap-2.5">
+                <button id="btn-cancel-wipe" class="py-2.5 rounded-xl bg-[#1d2b24] hover:bg-[#283b32] text-[#c7d6cd] font-military text-xs border border-[#32473c] transition cursor-pointer">
+                    <span data-i18n="cancel">ОТМЕНА</span>
+                </button>
+                <button id="btn-confirm-wipe" class="py-2.5 rounded-xl bg-[#6e2626] hover:bg-[#8a3030] text-white font-military text-xs border border-red-500/40 transition cursor-pointer">
+                    <span data-i18n="confirmWipe">СБРОСИТЬ ВСЁ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// 1. ЛОКАЛИЗАЦИЯ (RU / EN) И РЕАЛИСТИЧНЫЙ ЗВУК ОРУЖИЯ
+// ==========================================
+const i18n = {
+    ru: {
+        subtitle: "Удерживай периметр в сумерках. Нажимай на позиции внутри лагеря, чтобы расставлять бойцов.",
+        dragHint: "↻ Вращай камеру свайпом · Нажимай на точки в лагере",
+        start: "НАЧАТЬ",
+        battle: "В БОЙ!",
+        inBattle: "ИДЕТ БОЙ...",
+        wave: "ВОЛНА",
+        prepPhase: "Ожидание",
+        combatPhase: "Оборона!",
+        slotTitle: "Позиция",
+        emptySlot: "Свободная позиция",
+        lvl: "Ур.",
+        statsDmg: "Урон / Темп",
+        statsRange: "Дальность",
+        upgradeBtn: "УЛУЧШИТЬ",
+        dismissBtn: "УВОЛИТЬ",
+        gameOver: "ПЕРИМЕТР ПРОРВАН",
+        breachDesc: "Забор разрушен, но отряд уцелел. Все бойцы и шестеренки сохранены — восстановите периметр и переиграйте волну!",
+        retryWave: "ЕЩЕ РАЗ!",
+        wipeTitle: "ПОЛНЫЙ СБРОС?",
+        wipeDesc: "Весь прогресс, нанятые бойцы, улучшения, шестеренки и волны будут полностью удалены.",
+        cancel: "ОТМЕНА",
+        confirmWipe: "СБРОСИТЬ ВСЁ"
+    },
+    en: {
+        subtitle: "Hold the dusk perimeter. Tap platforms inside the camp to deploy your fighters.",
+        dragHint: "↻ Drag to rotate camera · Tap platforms in camp",
+        start: "START",
+        battle: "TO BATTLE!",
+        inBattle: "IN COMBAT...",
+        wave: "WAVE",
+        prepPhase: "Standby",
+        combatPhase: "Defending!",
+        slotTitle: "Position",
+        emptySlot: "Empty Position",
+        lvl: "Lvl",
+        statsDmg: "Damage / Rate",
+        statsRange: "Range",
+        upgradeBtn: "UPGRADE",
+        dismissBtn: "DISMISS",
+        gameOver: "PERIMETER BREACHED",
+        breachDesc: "The fence fell, but your squad survived. All fighters and gears are kept — rebuild and retry this wave!",
+        retryWave: "TRY AGAIN!",
+        wipeTitle: "FULL RESET?",
+        wipeDesc: "All progress, hired fighters, upgrades, gears, and waves will be completely wiped.",
+        cancel: "CANCEL",
+        confirmWipe: "WIPE ALL"
+    }
+};
+
+let currentLang = 'ru';
+let soundEnabled = true;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+let noiseBuffer = null;
+function getNoiseBuffer() {
+    if (noiseBuffer) return noiseBuffer;
+    const bufferSize = audioCtx.sampleRate * 0.6;
+    noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+    return noiseBuffer;
+}
+
+/**
+ * Процедурный синтез звуков для каждого вида оружия:
+ * 0: Glock-18 — звонкий, резкий, высокий щелчок пистолета
+ * 1: USP-S — приглушенный выстрел с глушителем ("пш-ш" / глухой хлопок)
+ * 2: MP5-SD — мягкий быстрый глушеный ПП
+ * 3: Galil AR — сухой среднечастотный автоматный треск
+ * 4: AK-47 — плотный, басовитый, тяжелый выстрел
+ * 5: SSG-08 — хлесткий, острый щелчок легкой снайперки
+ * 6: AWP — громогласный низкочастотный пушечный выстрел с эхом
+ */
+function playWeaponShot(weaponId) {
+    if (!soundEnabled) return;
+    try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = getNoiseBuffer();
+
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        if (weaponId === 0) {
+            // Glock-18: звонкий, высокий, короткий (не громкий, но яркий)
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(2400, now);
+            filter.frequency.exponentialRampToValueAtTime(950, now + 0.08);
+            filter.Q.value = 1.4;
+
+            gain.gain.setValueAtTime(0.065, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+            // Добавляем легкий металлический призвук затвора
+            const ping = audioCtx.createOscillator();
+            const pingGain = audioCtx.createGain();
+            ping.type = 'triangle';
+            ping.frequency.setValueAtTime(1450, now);
+            ping.frequency.exponentialRampToValueAtTime(520, now + 0.045);
+            pingGain.gain.setValueAtTime(0.035, now);
+            pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            ping.connect(pingGain);
+            pingGain.connect(audioCtx.destination);
+            ping.start(now);
+            ping.stop(now + 0.055);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start(now);
+            noise.stop(now + 0.095);
+
+        } else if (weaponId === 1) {
+            // USP-S: глушитель! Мягкий, приглушенный низкочастотный "пуф"
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(620, now);
+            filter.frequency.exponentialRampToValueAtTime(180, now + 0.075);
+
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+            // Тихий механический ход затвора
+            const bolt = audioCtx.createOscillator();
+            const boltGain = audioCtx.createGain();
+            bolt.type = 'sine';
+            bolt.frequency.setValueAtTime(320, now);
+            bolt.frequency.exponentialRampToValueAtTime(110, now + 0.04);
+            boltGain.gain.setValueAtTime(0.03, now);
+            boltGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+            bolt.connect(boltGain);
+            boltGain.connect(audioCtx.destination);
+            bolt.start(now);
+            bolt.stop(now + 0.05);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start(now);
+            noise.stop(now + 0.085);
+
+        } else if (weaponId === 2) {
+            // MP5-SD: интегрированный глушитель, быстрый мягкий хлопок
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(780, now);
+            filter.frequency.exponentialRampToValueAtTime(210, now + 0.065);
+
+            gain.gain.setValueAtTime(0.055, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start(now);
+            noise.stop(now + 0.075);
+
+        } else if (weaponId === 3) {
+            // Galil AR: резкий автоматный выстрел
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1350, now);
+            filter.frequency.exponentialRampToValueAtTime(340, now + 0.12);
+            filter.Q.value = 0.9;
+
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start(now);
+            noise.stop(now + 0.135);
+
+        } else if (weaponId === 4) {
+            // AK-47: тяжелый, плотный, басовитый удар
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1100, now);
+            filter.frequency.exponentialRampToValueAtTime(160, now + 0.16);
+
+            gain.gain.setValueAtTime(0.10, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+
+            const punch = audioCtx.createOscillator();
+            const punchGain = audioCtx.createGain();
+            punch.type = 'sine';
+            punch.frequency.setValueAtTime(190, now);
+            punch.frequency.exponentialRampToValueAtTime(55, now + 0.09);
+            punchGain.gain.setValueAtTime(0.08, now);
+            punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.095);
+            punch.connect(punchGain);
+            punchGain.connect(audioCtx.destination);
+            punch.start(now);
+            punch.stop(now + 0.1);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start(now);
+            noise.stop(now + 0.175);
+
+        } else if (weaponId === 5) {
+            // SSG-08: острый сверхзвуковой щелчок
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(900, now);
+            filter.frequency.exponentialRampToValueAtTime(300, now + 0.18);
+
+            gain.gain.setValueAtTime(0.09, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start(now);
+            noise.stop(now + 0.21);
+
+        } else {
+            // AWP: мощнейший раскатистый выстрел с глубоким саб-басом
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1400, now);
+            filter.frequency.exponentialRampToValueAtTime(95, now + 0.36);
+
+            gain.gain.setValueAtTime(0.14, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+            const sub = audioCtx.createOscillator();
+            const subGain = audioCtx.createGain();
+            sub.type = 'sawtooth';
+            sub.frequency.setValueAtTime(135, now);
+            sub.frequency.exponentialRampToValueAtTime(36, now + 0.24);
+            subGain.gain.setValueAtTime(0.11, now);
+            subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+            sub.connect(subGain);
+            subGain.connect(audioCtx.destination);
+            sub.start(now);
+            sub.stop(now + 0.27);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start(now);
+            noise.stop(now + 0.39);
+        }
+    } catch (e) {}
+}
+
+function playAtmosphericSound(kind) {
+    if (!soundEnabled) return;
+    try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+
+        if (kind === 'click') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(280, now);
+            osc.frequency.exponentialRampToValueAtTime(95, now + 0.045);
+            gain.gain.setValueAtTime(0.07, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.055);
+        } else if (kind === 'horn') {
+            const osc = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(110, now);
+            osc.frequency.linearRampToValueAtTime(98, now + 0.55);
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(280, now);
+
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.09, now + 0.12);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.62);
+        } else if (kind === 'zombieHit') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(115, now);
+            osc.frequency.exponentialRampToValueAtTime(45, now + 0.07);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.085);
+        }
+    } catch (e) {}
+}
+
+function updateLanguage() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[currentLang][key]) {
+            el.textContent = i18n[currentLang][key];
+        }
+    });
+    document.getElementById('btn-lang').textContent = currentLang.toUpperCase();
+    document.getElementById('wave-status').textContent = state.inWave 
+        ? i18n[currentLang].combatPhase 
+        : i18n[currentLang].prepPhase;
+
+    const battleBtn = document.getElementById('btn-battle');
+    if (state.inWave) {
+        battleBtn.innerHTML = `<span>⏳</span><span>${i18n[currentLang].inBattle}</span>`;
+    } else {
+        battleBtn.innerHTML = `<span>⚔️</span><span data-i18n="battle">${i18n[currentLang].battle}</span>`;
+    }
+
+    if (selectedSlotId !== null) {
+        openSlotModal(selectedSlotId);
+    }
+}
+
+// ==========================================
+// 2. ТИПЫ БОЙЦОВ, ПОЗИЦИИ И СОХРАНЕНИЕ ПРОГРЕССА
+// ==========================================
+const STORAGE_KEY = 'swamp_perimeter_save_v1';
+
+const WEAPON_TYPES = [
+    { typeId: 0, name: "Glock-18", baseCost: 50,   costMult: 1.55, baseDmg: 6,   fireRate: 1.15, range: 13, color: 0x5c6e63 },
+    { typeId: 1, name: "USP-S",    baseCost: 160,  costMult: 1.60, baseDmg: 12,  fireRate: 1.10, range: 17, color: 0x46594e },
+    { typeId: 2, name: "MP5-SD",   baseCost: 420,  costMult: 1.65, baseDmg: 8,   fireRate: 2.9,  range: 16, color: 0x3d5442 },
+    { typeId: 3, name: "Galil AR", baseCost: 1100, costMult: 1.70, baseDmg: 21,  fireRate: 2.0,  range: 21, color: 0x736343 },
+    { typeId: 4, name: "AK-47",    baseCost: 2800, costMult: 1.75, baseDmg: 42,  fireRate: 1.7,  range: 23, color: 0x7d4934 },
+    { typeId: 5, name: "SSG-08",   baseCost: 6500, costMult: 1.80, baseDmg: 125, fireRate: 0.70, range: 31, color: 0x455d6b },
+    { typeId: 6, name: "AWP",      baseCost: 15000,costMult: 1.85, baseDmg: 320, fireRate: 0.45, range: 38, color: 0x3b5737 }
+];
+
+const SPAWN_POSITIONS = [
+    [-3.1, -3.1],
+    [3.1, -3.1],
+    [-3.1, 3.1],
+    [3.1, 3.1],
+    [0, -3.4],
+    [-3.4, 0],
+    [3.4, 0]
+];
+
+const state = {
+    started: false,
+    inWave: false,
+    wave: 1,
+    scrap: 60, // Шестеренки / детали
+    hp: 100,
+    maxHp: 100,
+    zombiesToSpawn: 0,
+    spawnTimer: 0,
+    zombies: [],
+    bullets: [],
+    slots: SPAWN_POSITIONS.map((pos, idx) => ({
+        id: idx,
+        pos,
+        unitType: null,
+        level: 0,
+        totalSpent: 0,
+        cooldown: 0,
+        padMesh: null,
+        ringMesh: null,
+        unitGroup: null
+    }))
+};
+
+let selectedSlotId = null;
+
+function saveGameProgress() {
+    try {
+        const data = {
+            wave: state.wave,
+            scrap: state.scrap,
+            slots: state.slots.map(s => ({
+                typeId: s.unitType ? s.unitType.typeId : null,
+                level: s.level,
+                totalSpent: s.totalSpent
+            }))
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {}
+}
+
+function loadGameProgress() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (typeof data.wave === 'number') state.wave = Math.max(1, data.wave);
+        if (typeof data.scrap === 'number') state.scrap = Math.max(0, data.scrap);
+
+        if (Array.isArray(data.slots)) {
+            data.slots.forEach((savedSlot, idx) => {
+                const slot = state.slots[idx];
+                if (!slot) return;
+                if (savedSlot.typeId !== null && WEAPON_TYPES[savedSlot.typeId]) {
+                    const weaponCfg = WEAPON_TYPES[savedSlot.typeId];
+                    slot.unitType = weaponCfg;
+                    slot.level = Math.max(1, savedSlot.level || 1);
+                    slot.totalSpent = savedSlot.totalSpent || weaponCfg.baseCost;
+
+                    const mesh = createFighterMesh(weaponCfg);
+                    const scale = 1 + Math.min(0.32, (slot.level - 1) * 0.02);
+                    mesh.scale.set(scale, scale, scale);
+                    slot.padMesh.add(mesh);
+                    slot.unitGroup = mesh;
+                    slot.ringMesh.material.color.setHex(0x4ade80);
+                }
+            });
+        }
+    } catch (e) {}
+}
+
+// ==========================================
+// 3. НАСТРОЙКА 3D СЦЕНЫ (THREE.JS)
+// ==========================================
+const canvas = document.getElementById('gameCanvas');
+const wrapper = document.getElementById('game-wrapper');
+const scene = new THREE.Scene();
+
+const fogColor = 0x16211c;
+scene.background = new THREE.Color(fogColor);
+scene.fog = new THREE.FogExp2(fogColor, 0.022);
+
+const camera = new THREE.PerspectiveCamera(45, wrapper.clientWidth / wrapper.clientHeight, 0.1, 120);
+let camAngle = Math.PI / 4;
+let camHeight = 14.5;
+let camRadius = 15.5;
+
+function updateCameraPosition() {
+    camera.position.x = Math.sin(camAngle) * camRadius;
+    camera.position.z = Math.cos(camAngle) * camRadius;
+    camera.position.y = camHeight;
+    camera.lookAt(0, 0.5, 0);
+}
+updateCameraPosition();
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const ambientLight = new THREE.HemisphereLight(0x709180, 0x223028, 1.2);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xc2dbcc, 0.95);
+dirLight.position.set(10, 18, 12);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 1024;
+dirLight.shadow.mapSize.height = 1024;
+scene.add(dirLight);
+
+const baseLight = new THREE.PointLight(0xe09f56, 1.4, 15);
+baseLight.position.set(0, 2.2, 1.6);
+scene.add(baseLight);
+
+// ==========================================
+// 4. ПОСТРОЕНИЕ БАЗЫ, ПАЛАТКИ И ПОЗИЦИЙ
+// ==========================================
+const clickablePads = [];
+
+function createFighterMesh(weaponCfg) {
+    const unitGroup = new THREE.Group();
+
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x222924, flatShading: true });
+    const legGeo = new THREE.BoxGeometry(0.16, 0.45, 0.18);
+    const leftLeg = new THREE.Mesh(legGeo, legMat);
+    leftLeg.position.set(-0.12, 0.22, 0);
+    const rightLeg = new THREE.Mesh(legGeo, legMat);
+    rightLeg.position.set(0.12, 0.22, 0);
+    unitGroup.add(leftLeg, rightLeg);
+
+    const bodyGeo = new THREE.BoxGeometry(0.46, 0.55, 0.28);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: weaponCfg.color, flatShading: true });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.7;
+    body.castShadow = true;
+    unitGroup.add(body);
+
+    const vestGeo = new THREE.BoxGeometry(0.49, 0.42, 0.32);
+    const vestMat = new THREE.MeshStandardMaterial({ color: 0x1c211e, flatShading: true });
+    const vest = new THREE.Mesh(vestGeo, vestMat);
+    vest.position.y = 0.72;
+    unitGroup.add(vest);
+
+    const headGeo = new THREE.BoxGeometry(0.32, 0.32, 0.32);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xc9a88d, flatShading: true });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.y = 1.15;
+    unitGroup.add(head);
+
+    const helmetGeo = new THREE.BoxGeometry(0.36, 0.18, 0.36);
+    const helmetMat = new THREE.MeshStandardMaterial({ color: 0x2d382f, flatShading: true });
+    const helmet = new THREE.Mesh(helmetGeo, helmetMat);
+    helmet.position.y = 1.26;
+    unitGroup.add(helmet);
+
+    const armGeo = new THREE.BoxGeometry(0.13, 0.13, 0.42);
+    const leftArm = new THREE.Mesh(armGeo, bodyMat);
+    leftArm.position.set(-0.24, 0.8, 0.2);
+    leftArm.rotation.y = 0.3;
+    const rightArm = new THREE.Mesh(armGeo, bodyMat);
+    rightArm.position.set(0.24, 0.8, 0.2);
+    rightArm.rotation.y = -0.2;
+    unitGroup.add(leftArm, rightArm);
+
+    const gunLength = weaponCfg.typeId <= 1 ? 0.35 : (weaponCfg.typeId >= 5 ? 0.95 : 0.65);
+    const gunGeo = new THREE.BoxGeometry(0.08, 0.12, gunLength);
+    const gunMat = new THREE.MeshStandardMaterial({ color: 0x141715, metalness: 0.5, roughness: 0.4 });
+    const gun = new THREE.Mesh(gunGeo, gunMat);
+    gun.position.set(0.12, 0.8, 0.25 + gunLength * 0.35);
+    unitGroup.add(gun);
+
+    // Глушитель на USP-S и MP5-SD
+    if (weaponCfg.typeId === 1 || weaponCfg.typeId === 2) {
+        const silGeo = new THREE.CylinderGeometry(0.032, 0.032, 0.22, 6);
+        silGeo.rotateX(Math.PI / 2);
+        const silMat = new THREE.MeshStandardMaterial({ color: 0x262b28, metalness: 0.6, roughness: 0.3 });
+        const silencer = new THREE.Mesh(silGeo, silMat);
+        silencer.position.set(0.12, 0.81, 0.25 + gunLength * 0.85 + 0.08);
+        unitGroup.add(silencer);
+    }
+
+    if (weaponCfg.typeId >= 5) {
+        const scopeGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.28, 6);
+        scopeGeo.rotateX(Math.PI / 2);
+        const scope = new THREE.Mesh(scopeGeo, gunMat);
+        scope.position.set(0.12, 0.89, 0.42);
+        unitGroup.add(scope);
+    }
+
+    return unitGroup;
+}
+
+function buildMilitaryTent() {
+    const tentGroup = new THREE.Group();
+
+    const deckGeo = new THREE.BoxGeometry(2.6, 0.12, 3.0);
+    const deckMat = new THREE.MeshStandardMaterial({ color: 0x3b3127, flatShading: true });
+    const deck = new THREE.Mesh(deckGeo, deckMat);
+    deck.position.y = 0.12;
+    deck.receiveShadow = true;
+    tentGroup.add(deck);
+
+    const tentMat = new THREE.MeshStandardMaterial({ color: 0x3a4f41, roughness: 0.85, flatShading: true });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x2f4235, roughness: 0.9, flatShading: true });
+
+    const wallsGeo = new THREE.BoxGeometry(2.3, 0.75, 2.7);
+    const walls = new THREE.Mesh(wallsGeo, tentMat);
+    walls.position.y = 0.52;
+    walls.castShadow = true;
+    walls.receiveShadow = true;
+    tentGroup.add(walls);
+
+    const roofGeo = new THREE.CylinderGeometry(1.38, 1.38, 2.85, 3);
+    roofGeo.rotateZ(Math.PI / 2);
+    roofGeo.rotateY(Math.PI / 2);
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.y = 1.25;
+    roof.scale.set(1, 0.65, 1);
+    roof.castShadow = true;
+    tentGroup.add(roof);
+
+    const doorGeo = new THREE.BoxGeometry(0.85, 0.95, 0.12);
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x161f1a, flatShading: true });
+    const door = new THREE.Mesh(doorGeo, doorMat);
+    door.position.set(0, 0.62, 1.34);
+    tentGroup.add(door);
+
+    const flapGeo = new THREE.BoxGeometry(0.28, 0.95, 0.18);
+    const leftFlap = new THREE.Mesh(flapGeo, tentMat);
+    leftFlap.position.set(-0.52, 0.62, 1.36);
+    leftFlap.rotation.y = -0.25;
+    const rightFlap = new THREE.Mesh(flapGeo, tentMat);
+    rightFlap.position.set(0.52, 0.62, 1.36);
+    rightFlap.rotation.y = 0.25;
+    tentGroup.add(leftFlap, rightFlap);
+
+    const crateMat = new THREE.MeshStandardMaterial({ color: 0x574835, flatShading: true });
+    const crate1 = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.45), crateMat);
+    crate1.position.set(1.05, 0.32, 1.55);
+    crate1.rotation.y = 0.3;
+    crate1.castShadow = true;
+
+    const crate2 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.28, 0.35), crateMat);
+    crate2.position.set(1.02, 0.63, 1.52);
+    crate2.rotation.y = -0.2;
+    tentGroup.add(crate1, crate2);
+
+    const lanternGeo = new THREE.BoxGeometry(0.16, 0.22, 0.16);
+    const lanternMat = new THREE.MeshBasicMaterial({ color: 0xf5b967 });
+    const lantern = new THREE.Mesh(lanternGeo, lanternMat);
+    lantern.position.set(0, 1.25, 1.48);
+    tentGroup.add(lantern);
+
+    scene.add(tentGroup);
+}
+
+function buildEnvironment() {
+    const groundGeo = new THREE.CylinderGeometry(38, 38, 1, 32);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x1d2b24, roughness: 0.9, flatShading: true });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.position.y = -0.5;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const baseFloorGeo = new THREE.BoxGeometry(8.6, 0.2, 8.6);
+    const baseFloorMat = new THREE.MeshStandardMaterial({ color: 0x28342e, roughness: 0.8, flatShading: true });
+    const baseFloor = new THREE.Mesh(baseFloorGeo, baseFloorMat);
+    baseFloor.position.y = 0.05;
+    baseFloor.receiveShadow = true;
+    scene.add(baseFloor);
+
+    const fenceMat = new THREE.MeshStandardMaterial({ color: 0x453b32, roughness: 0.85, flatShading: true });
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x2f3833, roughness: 0.7, flatShading: true });
+    const halfSize = 4.3;
+
+    for (let i = -halfSize; i <= halfSize; i += 2.15) {
+        [
+            [i, halfSize], [i, -halfSize],
+            [halfSize, i], [-halfSize, i]
+        ].forEach(([px, pz]) => {
+            const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.95, 0.25), postMat);
+            post.position.set(px, 0.45, pz);
+            post.castShadow = true;
+            scene.add(post);
+        });
+    }
+
+    const railH = new THREE.BoxGeometry(halfSize * 2, 0.14, 0.12);
+    const railV = new THREE.BoxGeometry(0.12, 0.14, halfSize * 2);
+    [0.35, 0.72].forEach(h => {
+        const r1 = new THREE.Mesh(railH, fenceMat); r1.position.set(0, h, halfSize);
+        const r2 = new THREE.Mesh(railH, fenceMat); r2.position.set(0, h, -halfSize);
+        const r3 = new THREE.Mesh(railV, fenceMat); r3.position.set(halfSize, h, 0);
+        const r4 = new THREE.Mesh(railV, fenceMat); r4.position.set(-halfSize, h, 0);
+        scene.add(r1, r2, r3, r4);
+    });
+
+    buildMilitaryTent();
+
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x27332d, flatShading: true });
+    for (let i = 0; i < 25; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 7.5 + Math.random() * 17;
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4 + Math.random() * 0.7, 0), rockMat);
+        rock.position.set(Math.cos(angle) * dist, 0.2, Math.sin(angle) * dist);
+        rock.rotation.set(Math.random(), Math.random(), Math.random());
+        rock.castShadow = true;
+        scene.add(rock);
+    }
+
+    state.slots.forEach(slot => {
+        const slotGroup = new THREE.Group();
+        slotGroup.position.set(slot.pos[0], 0.16, slot.pos[1]);
+
+        const padGeo = new THREE.CylinderGeometry(0.75, 0.85, 0.16, 6);
+        const padMat = new THREE.MeshStandardMaterial({ color: 0x3a4d43, flatShading: true });
+        const pad = new THREE.Mesh(padGeo, padMat);
+        pad.receiveShadow = true;
+        pad.userData = { slotId: slot.id };
+        slotGroup.add(pad);
+        clickablePads.push(pad);
+
+        const ringGeo = new THREE.RingGeometry(0.62, 0.74, 6);
+        ringGeo.rotateX(-Math.PI / 2);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x6ba383, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.y = 0.09;
+        ring.userData = { slotId: slot.id };
+        slotGroup.add(ring);
+        clickablePads.push(ring);
+
+        const hitGeo = new THREE.CylinderGeometry(0.95, 0.95, 1.3, 8);
+        const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+        const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+        hitMesh.position.y = 0.6;
+        hitMesh.userData = { slotId: slot.id };
+        slotGroup.add(hitMesh);
+        clickablePads.push(hitMesh);
+
+        scene.add(slotGroup);
+        slot.padMesh = slotGroup;
+        slot.ringMesh = ring;
+    });
+}
+buildEnvironment();
+loadGameProgress();
+
+// ==========================================
+// 5. УПРАВЛЕНИЕ КАМЕРОЙ И ВЫБОР ПЛАТФОРМ
+// ==========================================
+let isDragging = false;
+let pointerDownPos = { x: 0, y: 0 };
+let prevX = 0;
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+
+canvas.addEventListener('pointerdown', (e) => {
+    isDragging = true;
+    prevX = e.clientX;
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+});
+
+window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - prevX;
+    prevX = e.clientX;
+    camAngle -= deltaX * 0.008;
+    updateCameraPosition();
+});
+
+window.addEventListener('pointerup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+
+    const moveDist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+    if (moveDist < 6 && state.started) {
+        handleCanvasTap(e.clientX, e.clientY);
+    }
+});
+
+function handleCanvasTap(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(pointerNDC, camera);
+    const hits = raycaster.intersectObjects(clickablePads, false);
+
+    if (hits.length > 0) {
+        const slotId = hits[0].object.userData.slotId;
+        playAtmosphericSound('click');
+        openSlotModal(slotId);
+    } else {
+        closeSlotModal();
+    }
+}
+
+// ==========================================
+// 6. МЕНЮ УПРАВЛЕНИЯ ТОЧКОЙ
+// ==========================================
+function getUpgradeCost(slot) {
+    if (!slot.unitType) return 0;
+    return Math.floor(slot.unitType.baseCost * Math.pow(slot.unitType.costMult, slot.level));
+}
+
+function getSlotDamage(slot) {
+    if (!slot.unitType || slot.level === 0) return 0;
+    return Math.floor(slot.unitType.baseDmg * (1 + (slot.level - 1) * 0.18));
+}
+
+function highlightSelectedSlot(id) {
+    state.slots.forEach(s => {
+        if (s.id === id) {
+            s.ringMesh.material.color.setHex(0xfbbf24);
+        } else if (s.unitType) {
+            s.ringMesh.material.color.setHex(0x4ade80);
+        } else {
+            s.ringMesh.material.color.setHex(0x6ba383);
+        }
+    });
+}
+
+function openSlotModal(slotId) {
+    selectedSlotId = slotId;
+    highlightSelectedSlot(slotId);
+
+    const slot = state.slots[slotId];
+    const modal = document.getElementById('slot-modal');
+    const hireList = document.getElementById('modal-hire-list');
+    const manageView = document.getElementById('modal-manage-view');
+
+    document.getElementById('modal-slot-title').textContent = `${i18n[currentLang].slotTitle} #${slotId + 1}`;
+    modal.classList.remove('hidden');
+
+    if (!slot.unitType) {
+        document.getElementById('modal-unit-name').textContent = i18n[currentLang].emptySlot;
+        hireList.classList.remove('hidden');
+        manageView.classList.add('hidden');
+        manageView.classList.remove('flex');
+
+        hireList.innerHTML = '';
+        WEAPON_TYPES.forEach(w => {
+            const canAfford = state.scrap >= w.baseCost;
+            const btn = document.createElement('button');
+            btn.className = `px-2 py-1.5 rounded-lg border text-left transition flex justify-between items-center ${
+                canAfford 
+                    ? 'bg-[#18261f] hover:bg-[#22362c] border-[#375244] cursor-pointer' 
+                    : 'bg-[#121a16] border-[#212e27] opacity-55 cursor-not-allowed'
+            }`;
+            btn.innerHTML = `
+                <div>
+                    <div class="font-military text-[11px] text-[#e5f0ea]">${w.name}</div>
+                    <div class="text-[9px] font-semibold text-[#789183]">⚔️${w.baseDmg} · ${w.range}m</div>
+                </div>
+                <span class="font-military text-[11px] ${canAfford ? 'text-amber-400' : 'text-[#5b7065]'}">⚙️${w.baseCost}</span>
+            `;
+            btn.onclick = () => hireUnitInSlot(slotId, w.typeId);
+            hireList.appendChild(btn);
+        });
+    } else {
+        const dmg = getSlotDamage(slot);
+        const upgCost = getUpgradeCost(slot);
+        const refund = Math.floor(slot.totalSpent * 0.7);
+        const canAfford = state.scrap >= upgCost;
+
+        document.getElementById('modal-unit-name').textContent = `${slot.unitType.name} (${i18n[currentLang].lvl} ${slot.level})`;
+        hireList.classList.add('hidden');
+        manageView.classList.remove('hidden');
+        manageView.classList.add('flex');
+
+        document.getElementById('manage-stats').textContent = `${dmg} DMG · ${slot.unitType.fireRate}/с`;
+        document.getElementById('manage-range').textContent = `${slot.unitType.range} м`;
+        document.getElementById('upgrade-cost-label').textContent = `⚙️ ${upgCost}`;
+        document.getElementById('dismiss-refund-label').textContent = `+⚙️ ${refund}`;
+
+        const upgBtn = document.getElementById('btn-upgrade-unit');
+        upgBtn.className = `py-1.5 px-2 rounded-lg font-military text-[10px] transition flex flex-col items-center justify-center ${
+            canAfford 
+                ? 'bg-[#395e4a] hover:bg-[#47755c] text-white cursor-pointer shadow' 
+                : 'bg-[#1c2621] text-[#55695e] cursor-not-allowed'
+        }`;
+        upgBtn.onclick = () => upgradeUnitInSlot(slotId);
+
+        document.getElementById('btn-dismiss-unit').onclick = () => dismissUnitInSlot(slotId);
+    }
+
+    updateSlotModalPosition();
+}
+
+function updateSlotModalPosition() {
+    if (selectedSlotId === null) return;
+    const slot = state.slots[selectedSlotId];
+    const modal = document.getElementById('slot-modal');
+    if (modal.classList.contains('hidden')) return;
+
+    const worldPos = new THREE.Vector3(slot.pos[0], 1.1, slot.pos[1]);
+    worldPos.project(camera);
+
+    const w = wrapper.clientWidth;
+    const h = wrapper.clientHeight;
+    const screenX = (worldPos.x * 0.5 + 0.5) * w;
+    const screenY = (-worldPos.y * 0.5 + 0.5) * h;
+
+    const modalW = modal.offsetWidth || 224;
+    const modalH = modal.offsetHeight || 160;
+
+    let left = screenX + 24;
+    if (left + modalW > w - 10) {
+        left = screenX - modalW - 24;
+    }
+    left = Math.max(10, Math.min(w - modalW - 10, left));
+
+    let top = screenY - modalH / 2;
+    top = Math.max(85, Math.min(h - modalH - 85, top));
+
+    modal.style.left = `${left}px`;
+    modal.style.top = `${top}px`;
+}
+
+function closeSlotModal() {
+    selectedSlotId = null;
+    highlightSelectedSlot(null);
+    document.getElementById('slot-modal').classList.add('hidden');
+}
+
+function hireUnitInSlot(slotId, weaponTypeId) {
+    const slot = state.slots[slotId];
+    const weaponCfg = WEAPON_TYPES[weaponTypeId];
+    if (slot.unitType || state.scrap < weaponCfg.baseCost) return;
+
+    state.scrap -= weaponCfg.baseCost;
+    slot.unitType = weaponCfg;
+    slot.level = 1;
+    slot.totalSpent = weaponCfg.baseCost;
+    slot.cooldown = 0;
+
+    const mesh = createFighterMesh(weaponCfg);
+    slot.padMesh.add(mesh);
+    slot.unitGroup = mesh;
+
+    saveGameProgress();
+    playAtmosphericSound('click');
+    updateHUD();
+    openSlotModal(slotId);
+}
+
+function upgradeUnitInSlot(slotId) {
+    const slot = state.slots[slotId];
+    if (!slot.unitType) return;
+    const cost = getUpgradeCost(slot);
+    if (state.scrap < cost) return;
+
+    state.scrap -= cost;
+    slot.level += 1;
+    slot.totalSpent += cost;
+
+    const scale = 1 + Math.min(0.32, (slot.level - 1) * 0.02);
+    slot.unitGroup.scale.set(scale, scale, scale);
+
+    saveGameProgress();
+    playAtmosphericSound('click');
+    updateHUD();
+    openSlotModal(slotId);
+}
+
+function dismissUnitInSlot(slotId) {
+    const slot = state.slots[slotId];
+    if (!slot.unitType) return;
+
+    const refund = Math.floor(slot.totalSpent * 0.7);
+    state.scrap += refund;
+
+    if (slot.unitGroup) {
+        slot.padMesh.remove(slot.unitGroup);
+        slot.unitGroup = null;
+    }
+    slot.unitType = null;
+    slot.level = 0;
+    slot.totalSpent = 0;
+
+    saveGameProgress();
+    playAtmosphericSound('click');
+    updateHUD();
+    openSlotModal(slotId);
+}
+
+document.getElementById('btn-close-modal').addEventListener('click', () => {
+    playAtmosphericSound('click');
+    closeSlotModal();
+});
+
+function updateHUD() {
+    document.getElementById('scrap-val').textContent = state.scrap;
+    document.getElementById('hp-val').textContent = Math.max(0, Math.ceil((state.hp / state.maxHp) * 100));
+    document.getElementById('wave-val').textContent = state.wave;
+}
+
+// ==========================================
+// 7. БОЕВАЯ СИСТЕМА, ВОЛНЫ И ЗОМБИ
+// ==========================================
+function startWave() {
+    if (state.inWave) return;
+    state.inWave = true;
+    state.zombiesToSpawn = 10 + Math.floor(state.wave * 4.2);
+    state.spawnTimer = 0.15;
+
+    const btn = document.getElementById('btn-battle');
+    btn.classList.add('opacity-50', 'pointer-events-none');
+    btn.innerHTML = `<span>⏳</span><span>${i18n[currentLang].inBattle}</span>`;
+    document.getElementById('wave-status').textContent = i18n[currentLang].combatPhase;
+
+    playAtmosphericSound('horn');
+}
+
+function createZombieMesh() {
+    const zombieGroup = new THREE.Group();
+
+    const skinMat = new THREE.MeshStandardMaterial({
+        color: 0x8bb57e,
+        emissive: 0x20301c,
+        roughness: 0.65,
+        flatShading: true
+    });
+    const clothesMat = new THREE.MeshStandardMaterial({
+        color: 0x627369,
+        emissive: 0x181f1b,
+        roughness: 0.75,
+        flatShading: true
+    });
+    const pantsMat = new THREE.MeshStandardMaterial({
+        color: 0x333c42,
+        emissive: 0x101417,
+        roughness: 0.85,
+        flatShading: true
+    });
+
+    const legGeo = new THREE.BoxGeometry(0.16, 0.46, 0.18);
+    const lLeg = new THREE.Mesh(legGeo, pantsMat);
+    lLeg.position.set(-0.12, 0.23, 0);
+    lLeg.castShadow = true;
+    const rLeg = new THREE.Mesh(legGeo, pantsMat);
+    rLeg.position.set(0.12, 0.23, 0);
+    rLeg.castShadow = true;
+    zombieGroup.add(lLeg, rLeg);
+
+    const torsoGeo = new THREE.BoxGeometry(0.46, 0.54, 0.28);
+    const torso = new THREE.Mesh(torsoGeo, clothesMat);
+    torso.position.set(0, 0.72, 0.03);
+    torso.rotation.x = 0.14;
+    torso.castShadow = true;
+    zombieGroup.add(torso);
+
+    const headGeo = new THREE.BoxGeometry(0.34, 0.34, 0.34);
+    const head = new THREE.Mesh(headGeo, skinMat);
+    head.position.set(0, 1.15, 0.09);
+    head.rotation.z = (Math.random() - 0.5) * 0.22;
+    head.castShadow = true;
+    zombieGroup.add(head);
+
+    const armGeo = new THREE.BoxGeometry(0.13, 0.13, 0.54);
+    const lArm = new THREE.Mesh(armGeo, skinMat);
+    lArm.position.set(-0.29, 0.86, 0.28);
+    lArm.rotation.x = -0.08;
+    lArm.castShadow = true;
+    const rArm = new THREE.Mesh(armGeo, skinMat);
+    rArm.position.set(0.29, 0.84, 0.26);
+    rArm.rotation.x = -0.18;
+    rArm.castShadow = true;
+    zombieGroup.add(lArm, rArm);
+
+    const hpBarGroup = new THREE.Group();
+    hpBarGroup.position.set(0, 1.56, 0);
+
+    const hpBgGeo = new THREE.PlaneGeometry(0.72, 0.11);
+    const hpBgMat = new THREE.MeshBasicMaterial({ color: 0x0f1412, side: THREE.DoubleSide });
+    const hpBg = new THREE.Mesh(hpBgGeo, hpBgMat);
+    hpBarGroup.add(hpBg);
+
+    const hpFillGeo = new THREE.PlaneGeometry(0.66, 0.07);
+    const hpFillMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, side: THREE.DoubleSide });
+    const hpFill = new THREE.Mesh(hpFillGeo, hpFillMat);
+    hpFill.position.z = 0.01;
+    hpBarGroup.add(hpFill);
+
+    zombieGroup.add(hpBarGroup);
+
+    return { zombieGroup, hpBarGroup, hpFill };
+}
+
+function spawnZombie() {
+    const angle = Math.random() * Math.PI * 2;
+    const spawnDist = 21 + Math.random() * 4;
+    const x = Math.cos(angle) * spawnDist;
+    const z = Math.sin(angle) * spawnDist;
+
+    const maxHp = Math.floor(32 * Math.pow(1.32, state.wave - 1));
+    const speed = 1.45 + Math.min(2.2, state.wave * 0.06) + (Math.random() * 0.3);
+
+    const { zombieGroup, hpBarGroup, hpFill } = createZombieMesh();
+    zombieGroup.position.set(x, 0, z);
+    zombieGroup.lookAt(0, 0, 0);
+    scene.add(zombieGroup);
+
+    state.zombies.push({
+        mesh: zombieGroup,
+        hpBarGroup,
+        hpFill,
+        hp: maxHp,
+        maxHp,
+        speed,
+        reward: 3 + Math.floor(state.wave * 0.6)
+    });
+}
+
+function shootBullet(slot, targetZombie) {
+    const startPos = new THREE.Vector3(slot.pos[0], 0.95, slot.pos[1]);
+    const targetPos = targetZombie.mesh.position.clone().add(new THREE.Vector3(0, 0.78, 0));
+
+    if (slot.unitGroup) {
+        slot.unitGroup.lookAt(targetPos.x, 0.16, targetPos.z);
+    }
+
+    const bulletGeo = new THREE.SphereGeometry(0.075, 6, 6);
+    const bulletMat = new THREE.MeshBasicMaterial({ color: 0xfcd34d });
+    const bulletMesh = new THREE.Mesh(bulletGeo, bulletMat);
+    bulletMesh.position.copy(startPos);
+    scene.add(bulletMesh);
+
+    state.bullets.push({
+        mesh: bulletMesh,
+        target: targetZombie,
+        dmg: getSlotDamage(slot),
+        speed: 34
+    });
+
+    playWeaponShot(slot.unitType.typeId);
+}
+
+// ==========================================
+// 8. ГЛАВНЫЙ ИГРОВОЙ ЦИКЛ
+// ==========================================
+let lastTime = performance.now();
+
+function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
+    if (!state.started) {
+        camAngle += dt * 0.15;
+        updateCameraPosition();
+        renderer.render(scene, camera);
+        return;
+    }
+
+    if (selectedSlotId !== null) {
+        updateSlotModalPosition();
+    }
+
+    if (state.inWave && state.zombiesToSpawn > 0) {
+        state.spawnTimer -= dt;
+        if (state.spawnTimer <= 0) {
+            spawnZombie();
+            state.zombiesToSpawn--;
+            state.spawnTimer = Math.max(0.22, 0.95 - state.wave * 0.04);
+        }
+    }
+
+    for (let i = state.zombies.length - 1; i >= 0; i--) {
+        const z = state.zombies[i];
+        const dir = new THREE.Vector3(-z.mesh.position.x, 0, -z.mesh.position.z);
+
+        z.mesh.lookAt(0, 0, 0);
+        z.mesh.position.y = Math.abs(Math.sin(now * 0.008 + i)) * 0.08;
+        z.hpBarGroup.lookAt(camera.position);
+
+        const atFenceX = Math.abs(z.mesh.position.x) <= 4.75;
+        const atFenceZ = Math.abs(z.mesh.position.z) <= 4.75;
+
+        if (!(atFenceX && atFenceZ)) {
+            dir.normalize();
+            z.mesh.position.addScaledVector(dir, z.speed * dt);
+        } else {
+            state.hp -= (7 + state.wave * 0.5) * dt;
+            updateHUD();
+            if (state.hp <= 0) {
+                triggerPerimeterBreach();
+                return;
+            }
+        }
+    }
+
+    state.slots.forEach(slot => {
+        if (!slot.unitType || slot.level <= 0) return;
+        slot.cooldown -= dt;
+
+        if (slot.cooldown <= 0 && state.zombies.length > 0) {
+            let nearest = null;
+            let minDist = slot.unitType.range;
+
+            state.zombies.forEach(z => {
+                const dx = z.mesh.position.x - slot.pos[0];
+                const dz = z.mesh.position.z - slot.pos[1];
+                const d = Math.hypot(dx, dz);
+                if (d <= minDist) {
+                    minDist = d;
+                    nearest = z;
+                }
+            });
+
+            if (nearest) {
+                shootBullet(slot, nearest);
+                slot.cooldown = 1 / slot.unitType.fireRate;
+            }
+        }
+    });
+
+    for (let i = state.bullets.length - 1; i >= 0; i--) {
+        const b = state.bullets[i];
+        const targetPos = b.target.mesh.position.clone().add(new THREE.Vector3(0, 0.78, 0));
+        const dir = targetPos.sub(b.mesh.position);
+        const dist = dir.length();
+
+        if (dist < 0.45 || b.target.hp <= 0) {
+            if (b.target.hp > 0) {
+                b.target.hp -= b.dmg;
+                const hpRatio = Math.max(0, b.target.hp / b.target.maxHp);
+                b.target.hpFill.scale.x = hpRatio;
+                b.target.hpFill.position.x = -(1 - hpRatio) * 0.33;
+
+                if (b.target.hp <= 0) {
+                    const idx = state.zombies.indexOf(b.target);
+                    if (idx !== -1) {
+                        scene.remove(b.target.mesh);
+                        state.zombies.splice(idx, 1);
+                        state.scrap += b.target.reward;
+                        saveGameProgress();
+                        updateHUD();
+                        if (selectedSlotId !== null) openSlotModal(selectedSlotId);
+                        playAtmosphericSound('zombieHit');
+                    }
+                }
+            }
+            scene.remove(b.mesh);
+            state.bullets.splice(i, 1);
+        } else {
+            dir.normalize();
+            b.mesh.position.addScaledVector(dir, b.speed * dt);
+        }
+    }
+
+    if (state.inWave && state.zombiesToSpawn === 0 && state.zombies.length === 0) {
+        state.inWave = false;
+        state.wave += 1;
+        state.scrap += 12 + state.wave * 3;
+        saveGameProgress();
+        updateHUD();
+        if (selectedSlotId !== null) openSlotModal(selectedSlotId);
+
+        const btn = document.getElementById('btn-battle');
+        btn.classList.remove('opacity-50', 'pointer-events-none');
+        btn.innerHTML = `<span>⚔️</span><span data-i18n="battle">${i18n[currentLang].battle}</span>`;
+        document.getElementById('wave-status').textContent = i18n[currentLang].prepPhase;
+        playAtmosphericSound('click');
+    }
+
+    renderer.render(scene, camera);
+}
+
+// Прорыв периметра: бойцы, шестеренки и номер волны сохраняются
+function triggerPerimeterBreach() {
+    state.inWave = false;
+    state.zombiesToSpawn = 0;
+
+    state.zombies.forEach(z => scene.remove(z.mesh));
+    state.bullets.forEach(b => scene.remove(b.mesh));
+    state.zombies = [];
+    state.bullets = [];
+
+    saveGameProgress();
+    closeSlotModal();
+    document.getElementById('gameover-modal').classList.remove('hidden');
+    playAtmosphericSound('horn');
+}
+
+// ==========================================
+// 9. ОБРАБОТЧИКИ КНОПОК ИНТЕРФЕЙСА
+// ==========================================
+document.getElementById('btn-start').addEventListener('click', () => {
+    state.started = true;
+    document.getElementById('main-menu').classList.add('hidden');
+    document.getElementById('hud-stats').classList.remove('hidden');
+    document.getElementById('hud-stats').classList.add('flex');
+    document.getElementById('game-ui').classList.remove('hidden');
+    document.getElementById('btn-open-wipe').classList.remove('hidden');
+    updateHUD();
+    playAtmosphericSound('click');
+});
+
+document.getElementById('btn-battle').addEventListener('click', startWave);
+
+document.getElementById('btn-lang').addEventListener('click', () => {
+    currentLang = currentLang === 'ru' ? 'en' : 'ru';
+    playAtmosphericSound('click');
+    updateLanguage();
+});
+
+document.getElementById('btn-sound').addEventListener('click', (e) => {
+    soundEnabled = !soundEnabled;
+    e.target.textContent = soundEnabled ? '🔊' : '🔇';
+    if (soundEnabled) playAtmosphericSound('click');
+});
+
+// Переиграть текущую волну (ничего не удаляется, восстанавливается только прочность забора)
+document.getElementById('btn-retry-wave').addEventListener('click', () => {
+    state.hp = state.maxHp;
+    state.inWave = false;
+    state.zombiesToSpawn = 0;
+
+    document.getElementById('gameover-modal').classList.add('hidden');
+    const btn = document.getElementById('btn-battle');
+    btn.classList.remove('opacity-50', 'pointer-events-none');
+    btn.innerHTML = `<span>⚔️</span><span data-i18n="battle">${i18n[currentLang].battle}</span>`;
+    document.getElementById('wave-status').textContent = i18n[currentLang].prepPhase;
+
+    updateHUD();
+    playAtmosphericSound('click');
+});
+
+// Открытие окна полного сброса
+document.getElementById('btn-open-wipe').addEventListener('click', () => {
+    playAtmosphericSound('click');
+    document.getElementById('wipe-modal').classList.remove('hidden');
+});
+
+document.getElementById('btn-cancel-wipe').addEventListener('click', () => {
+    playAtmosphericSound('click');
+    document.getElementById('wipe-modal').classList.add('hidden');
+});
+
+// Полный сброс всего прогресса
+document.getElementById('btn-confirm-wipe').addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+
+    state.zombies.forEach(z => scene.remove(z.mesh));
+    state.bullets.forEach(b => scene.remove(b.mesh));
+    state.zombies = [];
+    state.bullets = [];
+    state.zombiesToSpawn = 0;
+    state.wave = 1;
+    state.scrap = 60;
+    state.hp = 100;
+    state.inWave = false;
+
+    state.slots.forEach(s => {
+        if (s.unitGroup) {
+            s.padMesh.remove(s.unitGroup);
+            s.unitGroup = null;
+        }
+        s.unitType = null;
+        s.level = 0;
+        s.totalSpent = 0;
+        s.ringMesh.material.color.setHex(0x6ba383);
+    });
+
+    closeSlotModal();
+    document.getElementById('wipe-modal').classList.add('hidden');
+    document.getElementById('gameover-modal').classList.add('hidden');
+
+    const btn = document.getElementById('btn-battle');
+    btn.classList.remove('opacity-50', 'pointer-events-none');
+    btn.innerHTML = `<span>⚔️</span><span data-i18n="battle">${i18n[currentLang].battle}</span>`;
+    document.getElementById('wave-status').textContent = i18n[currentLang].prepPhase;
+
+    saveGameProgress();
+    updateHUD();
+    playAtmosphericSound('click');
+});
+
+window.addEventListener('resize', () => {
+    camera.aspect = wrapper.clientWidth / wrapper.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+});
+
+updateLanguage();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
