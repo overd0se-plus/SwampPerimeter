@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Swamp Dose">
-    <title>SwampDose: OVER</title>
+    <meta name="apple-mobile-web-app-title" content="Swamp Perimeter">
+    <title>Swamp Perimeter: Outpost</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Игровые шрифты с поддержкой кириллицы: Russo One (заголовки/акценты) и Exo 2 (тактический UI) -->
@@ -247,22 +247,22 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- ═══════ ЛЕСОПИЛКА: МОДАЛКА ═══════ -->
-<div id="sawmill-modal" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-56 bg-[#111915]/95 border border-amber-500/50 rounded-xl p-3 shadow-2xl backdrop-blur-md flex flex-col gap-2">
-    <button id="btn-close-sawmill" class="absolute top-1.5 right-2 text-[#7d957f] hover:text-white text-lg leading-none cursor-pointer">✕</button>
-    <div class="font-military text-sm text-amber-300 flex items-center gap-1.5">
-        <span>🪵</span>
-        <span>ЛЕСОПИЛКА</span>
+    <!-- ═══════ ЛЕСОПИЛКА: МОДАЛКА ═══════ -->
+    <div id="sawmill-modal" class="hidden absolute z-50 w-56 bg-[#111915]/95 border border-amber-500/50 rounded-xl p-3 shadow-2xl backdrop-blur-md flex flex-col gap-2">
+        <button id="btn-close-sawmill" class="absolute top-1.5 right-2 text-[#7d957f] hover:text-white text-lg leading-none cursor-pointer">✕</button>
+        <div class="font-military text-sm text-amber-300 flex items-center gap-1.5">
+            <span>🪵</span>
+            <span>ЛЕСОПИЛКА</span>
+        </div>
+        <div class="text-xs text-[#9cb3a6] font-tactical font-bold">Ур. <span id="sawmill-lvl-val" class="text-white">0</span></div>
+        <div class="text-[11px] text-[#8aa394]">Прочность забора: <span id="sawmill-defense-val" class="text-emerald-400 font-military">100%</span></div>
+        <button id="btn-upgrade-sawmill" class="w-full py-2 px-3 rounded-lg font-military text-xs transition flex flex-col items-center justify-center bg-[#395e4a] hover:bg-[#47755c] text-white cursor-pointer shadow">
+            <span id="sawmill-upg-label">ПОСТРОИТЬ</span>
+            <span class="text-[10px] text-amber-300 mt-0.5" id="sawmill-cost-label">⚙️ 100</span>
+            <span class="text-[8px] text-emerald-400 font-semibold mt-0.5" id="sawmill-preview"></span>
+        </button>
     </div>
-    <div class="text-xs text-[#9cb3a6] font-tactical font-bold">Ур. <span id="sawmill-lvl-val" class="text-white">0</span></div>
-    <div class="text-[11px] text-[#8aa394]">Прочность забора: <span id="sawmill-defense-val" class="text-emerald-400 font-military">100%</span></div>
-    <button id="btn-upgrade-sawmill" class="w-full py-2 px-3 rounded-lg font-military text-xs transition flex flex-col items-center justify-center bg-[#395e4a] hover:bg-[#47755c] text-white cursor-pointer shadow">
-        <span id="sawmill-upg-label">ПОСТРОИТЬ</span>
-        <span class="text-[10px] text-amber-300 mt-0.5" id="sawmill-cost-label">⚙️ 100</span>
-        <span class="text-[8px] text-emerald-400 font-semibold mt-0.5" id="sawmill-preview"></span>
-    </button>
 </div>
 
 <script>
@@ -816,6 +816,7 @@ const state = {
 
 let selectedSlotId = null;
 let sawmillHovered = false;
+let sawmillModalOpen = false;
 
 function refreshSawmillVisuals() {
     if (state.sawmillExtraLogs && state.sawmillExtraLogs.length > 0) {
@@ -1670,7 +1671,7 @@ function handleCanvasTap(clientX, clientY) {
         openSlotModal(slotId);
     } else {
         closeSlotModal();
-        document.getElementById('sawmill-modal').classList.add('hidden');
+        closeSawmillModal();
     }
 }
 
@@ -1683,11 +1684,12 @@ function getUpgradeCost(slot) {
 }
 
 function getSawmillMult() {
-    return state.sawmillLevel >= 1 ? 1 + (state.sawmillLevel - 1) * 0.5 : 1;
+    return 1 + state.sawmillLevel * 0.5;
 }
 function applySawmillToFence() {
+    const oldMax = state.maxHp;
     state.maxHp = Math.round(100 * getSawmillMult());
-    state.hp = state.maxHp;
+    state.hp = Math.min(state.maxHp, state.hp + Math.max(0, state.maxHp - oldMax));
 }
 
 function getSlotFireRate(slot) {
@@ -1781,8 +1783,10 @@ function openSlotModal(slotId) {
 
         document.getElementById('manage-stats').textContent = `${dmg} DMG · ${getSlotFireRate(slot).toFixed(2)}/с`;
         const nextDmg = Math.floor(slot.unitType.baseDmg * (1 + slot.level * 0.18));
-        const nextRate = getSlotFireRate(slot).toFixed(2);
-        document.getElementById('upgrade-preview').textContent = `+${nextDmg - dmg} DMG · ${nextRate}/с`;
+        const nextRate = getSlotFireRate(slot) + 0.05;
+        const dmgDelta = nextDmg - dmg;
+        const rateDelta = (nextRate - getSlotFireRate(slot)).toFixed(2);
+        document.getElementById('upgrade-preview').textContent = `+${dmgDelta} / +${rateDelta}`;
         document.getElementById('manage-range').textContent = `${slot.unitType.range} м`;
         document.getElementById('upgrade-cost-label').textContent = `⚙️ ${upgCost}`;
         document.getElementById('dismiss-refund-label').textContent = `+⚙️ ${refund}`;
@@ -1921,8 +1925,10 @@ document.getElementById('btn-close-modal').addEventListener('click', () => {
 
 function updateHUD() {
     document.getElementById('scrap-val').textContent = state.scrap;
-    document.getElementById('hp-val').textContent = Math.max(0, Math.ceil((state.hp / state.maxHp) * 100));
+    document.getElementById('hp-val').textContent = Math.max(0, Math.ceil(state.hp));
     document.getElementById('wave-val').textContent = state.wave;
+    const sawmillModalEl = document.getElementById('sawmill-modal');
+    if (sawmillModalEl && !sawmillModalEl.classList.contains('hidden')) updateSawmillButtonState();
     updateWaveProgressBar();
 }
 
@@ -2179,6 +2185,9 @@ function animate(now) {
 
     if (selectedSlotId !== null) {
         updateSlotModalPosition();
+    }
+    if (sawmillModalOpen) {
+        updateSawmillModalPosition();
     }
 
     if (state.inWave && state.zombiesToSpawn > 0) {
@@ -2443,20 +2452,61 @@ function getSawmillNextCost() {
     const lvl = state.sawmillLevel;
     return lvl < SAWMILL_PRICES.length ? SAWMILL_PRICES[lvl] : Math.round(SAWMILL_PRICES[7] * Math.pow(1.35, lvl - 7));
 }
+function updateSawmillButtonState() {
+    const cost = getSawmillNextCost();
+    document.getElementById('sawmill-cost-label').textContent = `⚙️ ${cost}`;
+    const btn = document.getElementById('btn-upgrade-sawmill');
+    const canAfford = state.scrap >= cost;
+    btn.className = `w-full py-2 px-3 rounded-lg font-military text-xs transition flex flex-col items-center justify-center ${canAfford ? 'bg-[#395e4a] hover:bg-[#47755c] text-white cursor-pointer shadow' : 'bg-[#1c2621] text-[#55695e] cursor-not-allowed'}`;
+    btn.onclick = () => upgradeSawmill();
+}
+
+function updateSawmillModalPosition() {
+    if (!sawmillModalOpen) return;
+    const modal = document.getElementById('sawmill-modal');
+    if (modal.classList.contains('hidden') || !state.sawmillHitMesh) return;
+
+    const worldPos = new THREE.Vector3(state.sawmillHitMesh.position.x, 1.15, state.sawmillHitMesh.position.z);
+    worldPos.project(camera);
+
+    const w = wrapper.clientWidth;
+    const h = wrapper.clientHeight;
+    const screenX = (worldPos.x * 0.5 + 0.5) * w;
+    const screenY = (-worldPos.y * 0.5 + 0.5) * h;
+
+    const modalW = modal.offsetWidth || 224;
+    const modalH = modal.offsetHeight || 170;
+
+    let left = screenX + 24;
+    if (left + modalW > w - 10) {
+        left = screenX - modalW - 24;
+    }
+    left = Math.max(10, Math.min(w - modalW - 10, left));
+
+    let top = screenY - modalH / 2;
+    top = Math.max(95, Math.min(h - modalH - 85, top));
+
+    modal.style.left = `${left}px`;
+    modal.style.top = `${top}px`;
+}
+
+function closeSawmillModal() {
+    sawmillModalOpen = false;
+    document.getElementById('sawmill-modal').classList.add('hidden');
+}
+
 function openSawmillModal() {
     closeSlotModal();
+    sawmillModalOpen = true;
     const m = document.getElementById('sawmill-modal');
     m.classList.remove('hidden');
     document.getElementById('sawmill-lvl-val').textContent = state.sawmillLevel;
     document.getElementById('sawmill-defense-val').textContent = `${Math.round(getSawmillMult() * 100)}%`;
     document.getElementById('sawmill-upg-label').textContent = state.sawmillLevel === 0 ? 'ПОСТРОИТЬ' : 'УЛУЧШИТЬ';
-    const cost = getSawmillNextCost();
-    document.getElementById('sawmill-cost-label').textContent = `⚙️ ${cost}`;
-    document.getElementById('sawmill-preview').textContent = state.sawmillLevel === 0 ? '→ 100%' : `→ ${Math.round((1 + state.sawmillLevel * 0.5) * 100)}%`;
-    const btn = document.getElementById('btn-upgrade-sawmill');
-    const canAfford = state.scrap >= cost;
-    btn.className = `w-full py-2 px-3 rounded-lg font-military text-xs transition flex flex-col items-center justify-center ${canAfford ? 'bg-[#395e4a] hover:bg-[#47755c] text-white cursor-pointer shadow' : 'bg-[#1c2621] text-[#55695e] cursor-not-allowed'}`;
-    btn.onclick = () => upgradeSawmill();
+    const nextFence = Math.round((1 + (state.sawmillLevel + 1) * 0.5) * 100);
+    document.getElementById('sawmill-preview').textContent = `→ ${nextFence}%`;
+    updateSawmillButtonState();
+    updateSawmillModalPosition();
 }
 function upgradeSawmill() {
     const cost = getSawmillNextCost();
@@ -2473,7 +2523,7 @@ function upgradeSawmill() {
 }
 document.getElementById('btn-close-sawmill').addEventListener('click', () => {
     playAtmosphericSound('click');
-    document.getElementById('sawmill-modal').classList.add('hidden');
+    closeSawmillModal();
 });
 
 window.addEventListener('resize', () => {
