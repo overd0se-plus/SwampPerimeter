@@ -52,6 +52,9 @@
         canvas:active {
             cursor: grabbing;
         }
+        canvas.can-interact {
+            cursor: pointer;
+        }
         /* Выразительный игровой шрифт для заголовков, кнопок и счетчиков */
         .font-military {
             font-family: 'Russo One', sans-serif;
@@ -82,17 +85,17 @@
     <!-- Верхняя панель (Ресурсы, Прогресс волны и Настройки) -->
     <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start pointer-events-none z-20" style="padding-top: calc(0.75rem + env(safe-area-inset-top));">
         <!-- Статистика в бою -->
-        <div id="hud-stats" class="hidden flex-col gap-1.5 pointer-events-auto">
-            <div class="bg-[#111915]/90 border border-[#2d3d34] px-3 py-1.5 rounded-xl backdrop-blur-md flex items-center gap-3 shadow-lg">
-                <span class="text-amber-400 font-military text-sm flex items-center gap-1">⚙️ <span id="scrap-val">60</span></span>
+        <div id="hud-stats" class="hidden flex-col gap-1.5 w-[195px] pointer-events-auto">
+            <div class="w-full bg-[#111915]/90 border border-[#2d3d34] px-3 py-1.5 rounded-xl backdrop-blur-md flex items-center justify-between shadow-lg">
+                <span class="text-amber-400 font-military text-sm flex items-center gap-1 tabular-nums">⚙️ <span id="scrap-val">60</span></span>
                 <span class="text-[#566b60] text-xs">|</span>
-                <span class="text-emerald-400 font-military text-sm flex items-center gap-1">🛡️ <span id="hp-val">100</span>%</span>
+                <span class="text-emerald-400 font-military text-sm flex items-center justify-end gap-1 tabular-nums min-w-[3.4rem]">🛡️ <span id="hp-val">100</span>%</span>
             </div>
-            <div class="bg-[#111915]/90 border border-[#2d3d34] px-3 py-1.5 rounded-xl backdrop-blur-md text-xs text-[#9cb3a6] font-tactical font-bold flex flex-col gap-1">
-                <div class="flex items-center gap-2">
-                    <span><span data-i18n="wave">ВОЛНА</span>: <span id="wave-val" class="text-white font-military">1</span></span>
+            <div class="w-full bg-[#111915]/90 border border-[#2d3d34] px-3 py-1.5 rounded-xl backdrop-blur-md text-xs text-[#9cb3a6] font-tactical font-bold flex flex-col gap-1">
+                <div class="flex items-center justify-between gap-1.5">
+                    <span class="whitespace-nowrap"><span data-i18n="wave">ВОЛНА</span>: <span id="wave-val" class="text-white font-military tabular-nums">1</span></span>
                     <span class="text-[#45594e]">•</span>
-                    <span id="wave-status" class="text-amber-400/90" data-i18n="prepPhase">Ожидание</span>
+                    <span id="wave-status" class="text-amber-400/90 truncate" data-i18n="prepPhase">Ожидание</span>
                 </div>
                 <!-- Прогресс-бар до конца волны -->
                 <div class="w-full h-1.5 bg-[#0a0f0c] rounded-full overflow-hidden border border-[#223029]">
@@ -112,13 +115,13 @@
                     <span data-i18n="soundLabel">ЗВУК</span>
                     <span id="sound-icon">🔊</span>
                 </button>
-                <button id="btn-lang" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
-                    <span data-i18n="langLabel">ЯЗЫК</span>
-                    <span id="lang-code" class="text-amber-400">RU</span>
-                </button>
                 <button id="btn-whats-new" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
                     <span>ЧТО НОВОГО?</span>
                     <span>❓</span>
+                </button>
+                <button id="btn-lang" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
+                    <span data-i18n="langLabel">ЯЗЫК</span>
+                    <span id="lang-code" class="text-amber-400">RU</span>
                 </button>
                 <button id="btn-open-wipe" class="hidden w-full px-3 py-2 rounded-lg bg-[#2b1616] hover:bg-[#422020] border border-[#5e2c2c] text-red-300 text-xs font-military flex justify-between items-center transition cursor-pointer">
                     <span data-i18n="resetBtn">СБРОС</span>
@@ -135,7 +138,7 @@
                 Tactical Outpost TD
             </div>
             <h1 class="font-military text-4xl tracking-wider text-[#e2ece6] drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)] leading-tight">
-                SWAMP<br><span class="text-[#69967c]">PERIMETER</span>
+                SWAMP<br><span class="text-[#69967c]">DOSE</span>
             </h1>
             <p data-i18n="subtitle" class="mt-3 text-xs font-medium text-[#98b0a3] max-w-[260px] mx-auto leading-relaxed">
                 Удерживай периметр в сумерках. Нажимай на позиции внутри лагеря, чтобы расставлять бойцов.
@@ -151,7 +154,7 @@
     </div>
 
     <!-- ИГРОВОЙ ИНТЕРФЕЙС (Кнопка "В БОЙ!" внизу экрана) -->
-    <div id="game-ui" class="hidden absolute inset-0 pointer-events-none flex flex-col justify-end pb-7 z-20">
+    <div id="game-ui" class="hidden absolute inset-0 pointer-events-none flex flex-col justify-end pb-20 z-20">
         <div class="flex flex-col items-center gap-2">
             <button id="btn-battle" class="pointer-events-auto px-10 py-3.5 bg-gradient-to-b from-[#85512c] to-[#573218] hover:from-[#9c6036] hover:to-[#6e4020] active:scale-95 text-[#fcece0] font-military text-base tracking-wider rounded-2xl border border-[#c48354]/60 shadow-[0_8px_25px_rgba(0,0,0,0.85)] transition flex items-center gap-2.5 cursor-pointer">
                 <span>⚔️</span>
@@ -192,6 +195,7 @@
                 <button id="btn-upgrade-unit" class="py-1.5 px-2 rounded-lg font-military text-[10px] bg-[#395e4a] hover:bg-[#47755c] text-white transition flex flex-col items-center justify-center cursor-pointer shadow">
                     <span data-i18n="upgradeBtn">УЛУЧШИТЬ</span>
                     <span class="text-[10px] text-amber-300 mt-0.5" id="upgrade-cost-label">⚙️ 72</span>
+                    <span class="text-[8px] text-emerald-400 font-semibold mt-0.5 leading-tight text-center" id="upgrade-preview"></span>
                 </button>
                 <button id="btn-dismiss-unit" class="py-1.5 px-2 rounded-lg font-military text-[10px] bg-[#4a2626] hover:bg-[#613232] text-red-200 border border-red-900/50 transition flex flex-col items-center justify-center cursor-pointer">
                     <span data-i18n="dismissBtn">УВОЛИТЬ</span>
@@ -243,6 +247,22 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- ═══════ ЛЕСОПИЛКА: МОДАЛКА ═══════ -->
+<div id="sawmill-modal" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-56 bg-[#111915]/95 border border-amber-500/50 rounded-xl p-3 shadow-2xl backdrop-blur-md flex flex-col gap-2">
+    <button id="btn-close-sawmill" class="absolute top-1.5 right-2 text-[#7d957f] hover:text-white text-lg leading-none cursor-pointer">✕</button>
+    <div class="font-military text-sm text-amber-300 flex items-center gap-1.5">
+        <span>🪵</span>
+        <span>ЛЕСОПИЛКА</span>
+    </div>
+    <div class="text-xs text-[#9cb3a6] font-tactical font-bold">Ур. <span id="sawmill-lvl-val" class="text-white">0</span></div>
+    <div class="text-[11px] text-[#8aa394]">Прочность забора: <span id="sawmill-defense-val" class="text-emerald-400 font-military">100%</span></div>
+    <button id="btn-upgrade-sawmill" class="w-full py-2 px-3 rounded-lg font-military text-xs transition flex flex-col items-center justify-center bg-[#395e4a] hover:bg-[#47755c] text-white cursor-pointer shadow">
+        <span id="sawmill-upg-label">ПОСТРОИТЬ</span>
+        <span class="text-[10px] text-amber-300 mt-0.5" id="sawmill-cost-label">⚙️ 100</span>
+        <span class="text-[8px] text-emerald-400 font-semibold mt-0.5" id="sawmill-preview"></span>
+    </button>
 </div>
 
 <script>
@@ -316,7 +336,6 @@ let currentLang = 'ru';
 let soundEnabled = true;
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-// Разблокировка Web Audio API для iOS Safari при первом касании
 let audioUnlocked = false;
 function unlockAudio() {
     if (audioUnlocked) return;
@@ -330,6 +349,7 @@ function unlockAudio() {
         source.connect(audioCtx.destination);
         source.start(0);
         audioUnlocked = true;
+        startMusic();
     } catch (e) {}
 }
 window.addEventListener('touchstart', unlockAudio, { passive: true });
@@ -347,168 +367,127 @@ function getNoiseBuffer() {
     return noiseBuffer;
 }
 
-function playWeaponShot(weaponId) {
+// ==========================================
+// АУДИО: мастер-шина, реверберация, выстрелы, музыка
+// ==========================================
+function makeImpulse(seconds, decay) {
+    const sr = audioCtx.sampleRate;
+    const len = Math.floor(sr * seconds);
+    const buf = audioCtx.createBuffer(2, len, sr);
+    for (let ch = 0; ch < 2; ch++) {
+        const d = buf.getChannelData(ch);
+        let lp = 0;
+        for (let i = 0; i < len; i++) {
+            const n = Math.random() * 2 - 1;
+            lp += (n - lp) * 0.35;
+            d[i] = lp * Math.pow(1 - i / len, decay);
+        }
+    }
+    return buf;
+}
+
+const MUSIC_VOLUME = 0.5;
+
+const masterGain = audioCtx.createGain();
+masterGain.gain.value = 0.85;
+const masterComp = audioCtx.createDynamicsCompressor();
+masterComp.threshold.value = -16;
+masterComp.knee.value = 18;
+masterComp.ratio.value = 4;
+masterComp.attack.value = 0.004;
+masterComp.release.value = 0.2;
+masterGain.connect(masterComp);
+masterComp.connect(audioCtx.destination);
+
+const sfxBus = audioCtx.createGain();
+sfxBus.connect(masterGain);
+const musicBus = audioCtx.createGain();
+musicBus.gain.value = 0;
+musicBus.connect(masterGain);
+
+const sfxReverbIn = audioCtx.createGain();
+const sfxReverb = audioCtx.createConvolver();
+sfxReverb.buffer = makeImpulse(1.8, 3.0);
+const sfxReverbOut = audioCtx.createGain();
+sfxReverbOut.gain.value = 0.55;
+sfxReverbIn.connect(sfxReverb);
+sfxReverb.connect(sfxReverbOut);
+sfxReverbOut.connect(masterGain);
+
+function noiseNode(t, len) {
+    const src = audioCtx.createBufferSource();
+    src.buffer = getNoiseBuffer();
+    src.start(t, Math.random() * 0.15);
+    src.stop(t + len + 0.03);
+    return src;
+}
+function envGain(t, peak, len) {
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    return g;
+}
+
+const WEAPON_SND = {
+    0: { crackF: 1800, crackLen: 0.035, crackVol: 0.30, bodyF: 3200, bodyE: 700, bodyLen: 0.09, bodyVol: 0.22, thF0: 170, thF1: 90, thLen: 0.06, thVol: 0.12, send: 0.25 },
+    1: { crackF: 900,  crackLen: 0.03,  crackVol: 0.10, bodyF: 1600, bodyE: 350, bodyLen: 0.11, bodyVol: 0.22, thF0: 140, thF1: 70, thLen: 0.08, thVol: 0.12, send: 0.20 },
+    2: { crackF: 1200, crackLen: 0.025, crackVol: 0.10, bodyF: 1900, bodyE: 400, bodyLen: 0.07, bodyVol: 0.18, thF0: 150, thF1: 80, thLen: 0.05, thVol: 0.09, send: 0.15 },
+    3: { crackF: 1500, crackLen: 0.05,  crackVol: 0.34, bodyF: 3000, bodyE: 450, bodyLen: 0.15, bodyVol: 0.26, thF0: 130, thF1: 60, thLen: 0.09, thVol: 0.16, send: 0.35 },
+    4: { crackF: 1200, crackLen: 0.05,  crackVol: 0.38, bodyF: 2400, bodyE: 300, bodyLen: 0.18, bodyVol: 0.30, thF0: 110, thF1: 50, thLen: 0.12, thVol: 0.26, send: 0.40 },
+    5: { crackF: 1800, crackLen: 0.06,  crackVol: 0.40, bodyF: 3600, bodyE: 500, bodyLen: 0.22, bodyVol: 0.24, thF0: 100, thF1: 55, thLen: 0.14, thVol: 0.18, send: 0.60 },
+    6: { crackF: 1000, crackLen: 0.08,  crackVol: 0.50, bodyF: 2600, bodyE: 180, bodyLen: 0.40, bodyVol: 0.38, thF0: 85,  thF1: 35, thLen: 0.30, thVol: 0.45, send: 0.80 },
+    shotgun: { crackF: 800, crackLen: 0.06, crackVol: 0.45, bodyF: 2000, bodyE: 200, bodyLen: 0.25, bodyVol: 0.38, thF0: 100, thF1: 40, thLen: 0.20, thVol: 0.35, send: 0.50 }
+};
+const lastShotTime = {};
+
+function fireSound(key) {
     if (!soundEnabled) return;
+    const p = WEAPON_SND[key] || WEAPON_SND[6];
     try {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         const now = audioCtx.currentTime;
+        if (now - (lastShotTime[key] || 0) < 0.035) return;
+        lastShotTime[key] = now;
 
-        const noise = audioCtx.createBufferSource();
-        noise.buffer = getNoiseBuffer();
+        const r = 0.92 + Math.random() * 0.16;
+        const v = 0.9 + Math.random() * 0.2;
+        const out = audioCtx.createGain();
+        out.gain.value = v;
+        out.connect(sfxBus);
+        const send = audioCtx.createGain();
+        send.gain.value = p.send;
+        out.connect(send);
+        send.connect(sfxReverbIn);
 
-        const filter = audioCtx.createBiquadFilter();
-        const gain = audioCtx.createGain();
+        const crack = noiseNode(now, p.crackLen);
+        const hp = audioCtx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = p.crackF * r;
+        crack.connect(hp);
+        hp.connect(envGain(now, p.crackVol, p.crackLen)).connect(out);
 
-        if (weaponId === 0) {
-            // Glock-18: звонкий, высокий, короткий щелчок
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(2400, now);
-            filter.frequency.exponentialRampToValueAtTime(950, now + 0.08);
-            filter.Q.value = 1.4;
+        const body = noiseNode(now, p.bodyLen);
+        const lp = audioCtx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.Q.value = 0.7;
+        lp.frequency.setValueAtTime(p.bodyF * r, now);
+        lp.frequency.exponentialRampToValueAtTime(p.bodyE * r, now + p.bodyLen);
+        body.connect(lp);
+        lp.connect(envGain(now, p.bodyVol, p.bodyLen)).connect(out);
 
-            gain.gain.setValueAtTime(0.065, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-
-            const ping = audioCtx.createOscillator();
-            const pingGain = audioCtx.createGain();
-            ping.type = 'triangle';
-            ping.frequency.setValueAtTime(1450, now);
-            ping.frequency.exponentialRampToValueAtTime(520, now + 0.045);
-            pingGain.gain.setValueAtTime(0.035, now);
-            pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-            ping.connect(pingGain);
-            pingGain.connect(audioCtx.destination);
-            ping.start(now);
-            ping.stop(now + 0.055);
-
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            noise.start(now);
-            noise.stop(now + 0.095);
-        } else if (weaponId === 1) {
-            // USP-S: приглушенный выстрел с глушителем
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(620, now);
-            filter.frequency.exponentialRampToValueAtTime(180, now + 0.075);
-
-            gain.gain.setValueAtTime(0.06, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-
-            const bolt = audioCtx.createOscillator();
-            const boltGain = audioCtx.createGain();
-            bolt.type = 'sine';
-            bolt.frequency.setValueAtTime(320, now);
-            bolt.frequency.exponentialRampToValueAtTime(110, now + 0.04);
-            boltGain.gain.setValueAtTime(0.03, now);
-            boltGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-            bolt.connect(boltGain);
-            boltGain.connect(audioCtx.destination);
-            bolt.start(now);
-            bolt.stop(now + 0.05);
-
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            noise.start(now);
-            noise.stop(now + 0.085);
-        } else if (weaponId === 2) {
-            // MP5-SD: мягкий быстрый глушеный ПП
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(780, now);
-            filter.frequency.exponentialRampToValueAtTime(210, now + 0.065);
-
-            gain.gain.setValueAtTime(0.055, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            noise.start(now);
-            noise.stop(now + 0.075);
-        } else if (weaponId === 3) {
-            // Galil AR: резкий автоматный выстрел
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(1350, now);
-            filter.frequency.exponentialRampToValueAtTime(340, now + 0.12);
-            filter.Q.value = 0.9;
-
-            gain.gain.setValueAtTime(0.08, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
-
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            noise.start(now);
-            noise.stop(now + 0.135);
-        } else if (weaponId === 4) {
-            // AK-47: плотный, басовитый удар
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(1100, now);
-            filter.frequency.exponentialRampToValueAtTime(160, now + 0.16);
-
-            gain.gain.setValueAtTime(0.10, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
-
-            const punch = audioCtx.createOscillator();
-            const punchGain = audioCtx.createGain();
-            punch.type = 'sine';
-            punch.frequency.setValueAtTime(190, now);
-            punch.frequency.exponentialRampToValueAtTime(55, now + 0.09);
-            punchGain.gain.setValueAtTime(0.08, now);
-            punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.095);
-            punch.connect(punchGain);
-            punchGain.connect(audioCtx.destination);
-            punch.start(now);
-            punch.stop(now + 0.1);
-
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            noise.start(now);
-            noise.stop(now + 0.175);
-        } else if (weaponId === 5) {
-            // SSG-08: хлесткий щелчок легкой снайперки
-            filter.type = 'highpass';
-            filter.frequency.setValueAtTime(900, now);
-            filter.frequency.exponentialRampToValueAtTime(300, now + 0.18);
-
-            gain.gain.setValueAtTime(0.09, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
-
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            noise.start(now);
-            noise.stop(now + 0.21);
-        } else {
-            // AWP: мощный раскатистый выстрел с саб-басом
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(1400, now);
-            filter.frequency.exponentialRampToValueAtTime(95, now + 0.36);
-
-            gain.gain.setValueAtTime(0.14, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
-
-            const sub = audioCtx.createOscillator();
-            const subGain = audioCtx.createGain();
-            sub.type = 'sawtooth';
-            sub.frequency.setValueAtTime(135, now);
-            sub.frequency.exponentialRampToValueAtTime(36, now + 0.24);
-            subGain.gain.setValueAtTime(0.11, now);
-            subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
-            sub.connect(subGain);
-            subGain.connect(audioCtx.destination);
-            sub.start(now);
-            sub.stop(now + 0.27);
-
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            noise.start(now);
-            noise.stop(now + 0.39);
-        }
+        const th = audioCtx.createOscillator();
+        th.type = 'sine';
+        th.frequency.setValueAtTime(p.thF0 * r, now);
+        th.frequency.exponentialRampToValueAtTime(p.thF1 * r, now + p.thLen);
+        th.connect(envGain(now, p.thVol, p.thLen)).connect(out);
+        th.start(now);
+        th.stop(now + p.thLen + 0.03);
     } catch (e) {}
+}
+
+function playWeaponShot(weaponId) {
+    fireSound(weaponId);
 }
 
 function playAtmosphericSound(kind) {
@@ -519,50 +498,232 @@ function playAtmosphericSound(kind) {
 
         if (kind === 'click') {
             const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(280, now);
-            osc.frequency.exponentialRampToValueAtTime(95, now + 0.045);
-            gain.gain.setValueAtTime(0.07, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(360, now);
+            osc.frequency.exponentialRampToValueAtTime(190, now + 0.05);
+            osc.connect(envGain(now, 0.05, 0.06)).connect(sfxBus);
             osc.start(now);
-            osc.stop(now + 0.055);
+            osc.stop(now + 0.07);
         } else if (kind === 'horn') {
-            const osc = audioCtx.createOscillator();
-            const filter = audioCtx.createBiquadFilter();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(110, now);
-            osc.frequency.linearRampToValueAtTime(98, now + 0.55);
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(280, now);
-
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.09, now + 0.12);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now);
-            osc.stop(now + 0.62);
+            const out = audioCtx.createGain();
+            out.connect(sfxBus);
+            const send = audioCtx.createGain();
+            send.gain.value = 0.6;
+            out.connect(send);
+            send.connect(sfxReverbIn);
+            const lp = audioCtx.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = 420;
+            lp.connect(out);
+            [[110, 0.07], [164.8, 0.035], [110.6, 0.05]].forEach(([f, vol]) => {
+                const o = audioCtx.createOscillator();
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(f, now);
+                o.frequency.linearRampToValueAtTime(f * 0.9, now + 1.0);
+                const g = audioCtx.createGain();
+                g.gain.setValueAtTime(0.0001, now);
+                g.gain.linearRampToValueAtTime(vol, now + 0.3);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+                o.connect(g);
+                g.connect(lp);
+                o.start(now);
+                o.stop(now + 1.25);
+            });
         } else if (kind === 'zombieHit') {
+            if (now - (lastShotTime.zhit || 0) < 0.05) return;
+            lastShotTime.zhit = now;
+            const r = 0.9 + Math.random() * 0.25;
+            const n = noiseNode(now, 0.08);
+            const lp = audioCtx.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = 450 * r;
+            n.connect(lp);
+            lp.connect(envGain(now, 0.07, 0.08)).connect(sfxBus);
             const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(115, now);
-            osc.frequency.exponentialRampToValueAtTime(45, now + 0.07);
-            gain.gain.setValueAtTime(0.05, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(115 * r, now);
+            osc.frequency.exponentialRampToValueAtTime(45, now + 0.08);
+            osc.connect(envGain(now, 0.05, 0.09)).connect(sfxBus);
             osc.start(now);
-            osc.stop(now + 0.085);
+            osc.stop(now + 0.1);
         }
     } catch (e) {}
 }
+
+// ===== ФОНОВАЯ МУЗЫКА =====
+const musicRevIn = audioCtx.createGain();
+const musicRev = audioCtx.createConvolver();
+musicRev.buffer = makeImpulse(3.6, 2.4);
+const musicRevOut = audioCtx.createGain();
+musicRevOut.gain.value = 0.7;
+musicRevIn.connect(musicRev);
+musicRev.connect(musicRevOut);
+musicRevOut.connect(musicBus);
+
+const noteBus = audioCtx.createGain();
+noteBus.connect(musicBus);
+const noteRevSend = audioCtx.createGain();
+noteRevSend.gain.value = 0.6;
+noteBus.connect(noteRevSend);
+noteRevSend.connect(musicRevIn);
+const echo = audioCtx.createDelay(1.5);
+echo.delayTime.value = 0.52;
+const echoFb = audioCtx.createGain();
+echoFb.gain.value = 0.32;
+const echoLp = audioCtx.createBiquadFilter();
+echoLp.type = 'lowpass';
+echoLp.frequency.value = 1800;
+const echoSend = audioCtx.createGain();
+echoSend.gain.value = 0.45;
+noteBus.connect(echoSend);
+echoSend.connect(echo);
+echo.connect(echoLp);
+echoLp.connect(echoFb);
+echoFb.connect(echo);
+echoLp.connect(musicBus);
+echoLp.connect(musicRevIn);
+
+const padBus = audioCtx.createGain();
+padBus.connect(musicBus);
+const padRevSend = audioCtx.createGain();
+padRevSend.gain.value = 0.5;
+padBus.connect(padRevSend);
+padRevSend.connect(musicRevIn);
+
+const CHORD_LEN = 8;
+const CHORDS = [
+    [110.00, 164.81, 220.00, 261.63, 329.63],
+    [87.31, 130.81, 174.61, 220.00, 261.63],
+    [130.81, 196.00, 261.63, 329.63, 392.00],
+    [98.00, 146.83, 196.00, 246.94, 293.66]
+];
+const MELODY_NOTES = [440.00, 523.25, 587.33, 659.25, 783.99, 880.00];
+
+function padVoice(freq, t, dur, vol) {
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.Q.value = 0.3;
+    lp.frequency.setValueAtTime(500, t);
+    lp.frequency.linearRampToValueAtTime(950, t + dur * 0.5);
+    lp.frequency.linearRampToValueAtTime(500, t + dur);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + 3.0);
+    g.gain.setValueAtTime(vol, t + dur - 3.5);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    lp.connect(g);
+    g.connect(padBus);
+    [['triangle', -6], ['sine', 5]].forEach(([type, cents]) => {
+        const o = audioCtx.createOscillator();
+        o.type = type;
+        o.frequency.value = freq;
+        o.detune.value = cents;
+        o.connect(lp);
+        o.start(t);
+        o.stop(t + dur + 0.1);
+    });
+}
+
+function melodyNote(freq, t) {
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.035, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 3.0);
+    g.connect(noteBus);
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    o.connect(g);
+    o.start(t);
+    o.stop(t + 3.1);
+    const o2 = audioCtx.createOscillator();
+    o2.type = 'triangle';
+    o2.frequency.value = freq * 2;
+    const g2 = audioCtx.createGain();
+    g2.gain.value = 0.25;
+    o2.connect(g2);
+    g2.connect(g);
+    o2.start(t);
+    o2.stop(t + 3.1);
+}
+
+let chordIdx = 0;
+let nextChordTime = 0;
+let lastMelodyIdx = -1;
+function scheduleChord(t) {
+    const chord = CHORDS[chordIdx % CHORDS.length];
+    chordIdx++;
+    chord.forEach((f, i) => padVoice(f, t, CHORD_LEN + 3, i === 0 ? 0.03 : 0.016));
+    const count = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+        let idx;
+        do { idx = Math.floor(Math.random() * MELODY_NOTES.length); } while (idx === lastMelodyIdx);
+        lastMelodyIdx = idx;
+        melodyNote(MELODY_NOTES[idx], t + 1 + Math.random() * (CHORD_LEN - 2));
+    }
+}
+
+let musicStarted = false;
+function startMusic() {
+    if (musicStarted) return;
+    musicStarted = true;
+    try {
+        const sr = audioCtx.sampleRate;
+        const wbuf = audioCtx.createBuffer(1, sr * 6, sr);
+        const wd = wbuf.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < wd.length; i++) {
+            last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+            wd[i] = last * 3.5;
+        }
+        const wind = audioCtx.createBufferSource();
+        wind.buffer = wbuf;
+        wind.loop = true;
+        const wbp = audioCtx.createBiquadFilter();
+        wbp.type = 'bandpass';
+        wbp.frequency.value = 380;
+        wbp.Q.value = 0.7;
+        const wg = audioCtx.createGain();
+        wg.gain.value = 0.03;
+        const lfo = audioCtx.createOscillator();
+        lfo.frequency.value = 0.06;
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 0.018;
+        lfo.connect(lfoGain);
+        lfoGain.connect(wg.gain);
+        wind.connect(wbp);
+        wbp.connect(wg);
+        wg.connect(musicBus);
+        wind.start();
+        lfo.start();
+
+        nextChordTime = audioCtx.currentTime + 0.3;
+        setInterval(musicTick, 400);
+        musicTick();
+    } catch (e) {}
+}
+
+function musicTick() {
+    try {
+        const now = audioCtx.currentTime;
+        const inWave = (typeof state !== 'undefined') && state.inWave;
+        const target = soundEnabled ? MUSIC_VOLUME * (inWave ? 0.6 : 1) : 0;
+        musicBus.gain.setTargetAtTime(target, now, 0.8);
+        if (!soundEnabled || audioCtx.state !== 'running') return;
+        if (nextChordTime < now) nextChordTime = now + 0.1;
+        while (nextChordTime < now + 2.5) {
+            scheduleChord(nextChordTime);
+            nextChordTime += CHORD_LEN;
+        }
+    } catch (e) {}
+}
+
+document.addEventListener('visibilitychange', () => {
+    try {
+        if (document.hidden) audioCtx.suspend();
+        else if (soundEnabled) audioCtx.resume();
+    } catch (e) {}
+});
 
 function updateLanguage() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -600,7 +761,8 @@ const WEAPON_TYPES = [
     { typeId: 3, name: "Galil AR", baseCost: 1100, upgBase: 150,  upgMult: 1.45, baseDmg: 21,  fireRate: 2.0,  range: 21, color: 0x736343 },
     { typeId: 4, name: "AK-47",    baseCost: 2800, upgBase: 360,  upgMult: 1.48, baseDmg: 42,  fireRate: 1.7,  range: 23, color: 0x7d4934 },
     { typeId: 5, name: "SSG-08",   baseCost: 6500, upgBase: 820,  upgMult: 1.50, baseDmg: 125, fireRate: 0.80, range: 31, color: 0x455d6b },
-    { typeId: 6, name: "AWP",      baseCost: 15000,upgBase: 1850, upgMult: 1.52, baseDmg: 320, fireRate: 0.45, range: 38, color: 0x3b5737 }
+    { typeId: 6, name: "AWP",      baseCost: 15000,upgBase: 1850, upgMult: 1.52, baseDmg: 320, fireRate: 0.45, range: 38, color: 0x3b5737 },
+    { typeId: 7, name: "XM-1014",  baseCost: 4800, upgBase: 720,   upgMult: 1.50, baseDmg: 18,  fireRate: 0.85, range: 8,  color: 0x3c4a52, shotgun: true }
 ];
 
 const SPAWN_POSITIONS = [
@@ -613,14 +775,22 @@ const SPAWN_POSITIONS = [
     [3.4, 0]
 ];
 
-// Цены разблокировки позиций (первые 2 открыты сразу, остальные покупаются по мере прогресса)
 const SLOT_UNLOCK_COSTS = [0, 0, 90, 260, 680, 1750, 4500];
 
 const state = {
     started: false,
     inWave: false,
     wave: 1,
-    scrap: 60, // Шестеренки / детали
+    scrap: 60,
+    sawmillLevel: 0,
+    sawmillMesh: null,
+    sawmillHitMesh: null,
+    sawmillRingMesh: null,
+    sawmillRingMat: null,
+    sawmillBadgeGroup: null,
+    sawmillBladeMesh: null,
+    sawmillExtraLogs: [],
+    sawmillPulseTimer: 0,
     hp: 100,
     maxHp: 100,
     waveTotalZombies: 0,
@@ -645,12 +815,29 @@ const state = {
 };
 
 let selectedSlotId = null;
+let sawmillHovered = false;
+
+function refreshSawmillVisuals() {
+    if (state.sawmillExtraLogs && state.sawmillExtraLogs.length > 0) {
+        state.sawmillExtraLogs.forEach((log, idx) => {
+            log.visible = state.sawmillLevel > idx;
+        });
+    }
+    if (state.sawmillRingMat) {
+        if (state.sawmillLevel > 0) {
+            state.sawmillRingMat.color.setHex(0x4ade80);
+        } else {
+            state.sawmillRingMat.color.setHex(0xf59e0b);
+        }
+    }
+}
 
 function saveGameProgress() {
     try {
         const data = {
             wave: state.wave,
             scrap: state.scrap,
+            sawmillLevel: state.sawmillLevel,
             slots: state.slots.map(s => ({
                 unlocked: s.unlocked,
                 typeId: s.unitType ? s.unitType.typeId : null,
@@ -669,6 +856,9 @@ function loadGameProgress() {
         const data = JSON.parse(raw);
         if (typeof data.wave === 'number') state.wave = Math.max(1, data.wave);
         if (typeof data.scrap === 'number') state.scrap = Math.max(0, data.scrap);
+        if (typeof data.sawmillLevel === 'number') state.sawmillLevel = Math.max(0, data.sawmillLevel);
+        applySawmillToFence();
+        refreshSawmillVisuals();
 
         if (Array.isArray(data.slots)) {
             data.slots.forEach((savedSlot, idx) => {
@@ -713,7 +903,7 @@ scene.fog = new THREE.FogExp2(fogColor, 0.020);
 
 const camera = new THREE.PerspectiveCamera(45, wrapper.clientWidth / wrapper.clientHeight, 0.1, 120);
 let camAngle = Math.PI / 4;
-let camZoom = 1.0; // От 0.85 (ближе) до 1.55 (дальше для большего обзора)
+let camZoom = 1.0;
 
 function updateCameraPosition() {
     const r = 15.5 * camZoom;
@@ -746,9 +936,92 @@ baseLight.position.set(0, 2.2, 1.6);
 scene.add(baseLight);
 
 // ==========================================
-// 4. ПОСТРОЕНИЕ БАЗЫ, ПАЛАТКИ И ПОЗИЦИЙ
+// 4. ПОСТРОЕНИЕ БАЗЫ, ПАЛАТКИ, ЛЕСОПИЛКИ И ПОЗИЦИЙ
 // ==========================================
 const clickablePads = [];
+
+function createWeaponMesh(weaponCfg) {
+    const g = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: weaponCfg.color || 0x141715, metalness: 0.55, roughness: 0.45, flatShading: true });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x23282b, metalness: 0.7, roughness: 0.35 });
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2c, roughness: 0.85, flatShading: true });
+    const t = weaponCfg.typeId;
+    const isPistol = t <= 1;
+    const isSniper = t >= 5;
+    const isShotgun = t === 7;
+
+    const barrelLen = isPistol ? 0.16 : (isSniper ? 0.62 : (isShotgun ? 0.5 : 0.42));
+    const barrelR = isShotgun ? 0.036 : 0.022;
+    const barrelGeo = new THREE.CylinderGeometry(barrelR, barrelR, barrelLen, 8);
+    barrelGeo.rotateX(Math.PI / 2);
+    const barrel = new THREE.Mesh(barrelGeo, metalMat);
+    barrel.position.set(0, 0, barrelLen * 0.5);
+    g.add(barrel);
+
+    if (t === 1 || t === 2) {
+        const silGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.2, 8);
+        silGeo.rotateX(Math.PI / 2);
+        const sil = new THREE.Mesh(silGeo, metalMat);
+        sil.position.set(0, 0, barrelLen + 0.08);
+        g.add(sil);
+    }
+
+    const bodyLen = isPistol ? 0.16 : 0.4;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.07, isPistol ? 0.1 : 0.13, bodyLen), bodyMat);
+    body.position.set(0, 0, barrelLen * 0.4);
+    g.add(body);
+
+    if (!isPistol && t !== 5 && t !== 6) {
+        const mag = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.08), metalMat);
+        mag.position.set(0, -0.12, barrelLen * 0.25);
+        mag.rotation.x = -0.12;
+        g.add(mag);
+    }
+
+    if (isShotgun) {
+        const pumpGeo = new THREE.CylinderGeometry(0.046, 0.046, 0.16, 8);
+        pumpGeo.rotateX(Math.PI / 2);
+        const pump = new THREE.Mesh(pumpGeo, bodyMat);
+        pump.position.set(0, -0.03, barrelLen * 0.55);
+        g.add(pump);
+    }
+
+    if (!isPistol) {
+        const stockLen = 0.22;
+        const stock = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.11, stockLen), (t === 3 || t === 4) ? woodMat : bodyMat);
+        stock.position.set(0, -0.02, -stockLen * 0.5);
+        g.add(stock);
+
+        const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.07), (t === 3 || t === 4) ? woodMat : bodyMat);
+        grip.position.set(0, -0.1, -0.02);
+        grip.rotation.x = 0.25;
+        g.add(grip);
+    }
+
+    if (isSniper) {
+        const scopeGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.26, 8);
+        scopeGeo.rotateX(Math.PI / 2);
+        const scope = new THREE.Mesh(scopeGeo, metalMat);
+        scope.position.set(0, 0.09, 0.08);
+        g.add(scope);
+    }
+
+    const sight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.02), metalMat);
+    sight.position.set(0, barrelR + 0.015, barrelLen * 0.9);
+    g.add(sight);
+
+    const muzzle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0 })
+    );
+    muzzle.position.set(0, 0, barrelLen + 0.06);
+    g.add(muzzle);
+    g.userData.muzzle = muzzle;
+
+    const zOff = isPistol ? 0.25 : 0.25 + (isSniper ? 0.55 : (isShotgun ? 0.42 : 0.35));
+    g.position.set(0.12, 0.8, zOff);
+    return g;
+}
 
 function createFighterMesh(weaponCfg) {
     const unitGroup = new THREE.Group();
@@ -795,29 +1068,7 @@ function createFighterMesh(weaponCfg) {
     rightArm.rotation.y = -0.2;
     unitGroup.add(leftArm, rightArm);
 
-    const gunLength = weaponCfg.typeId <= 1 ? 0.35 : (weaponCfg.typeId >= 5 ? 0.95 : 0.65);
-    const gunGeo = new THREE.BoxGeometry(0.08, 0.12, gunLength);
-    const gunMat = new THREE.MeshStandardMaterial({ color: 0x141715, metalness: 0.5, roughness: 0.4 });
-    const gun = new THREE.Mesh(gunGeo, gunMat);
-    gun.position.set(0.12, 0.8, 0.25 + gunLength * 0.35);
-    unitGroup.add(gun);
-
-    if (weaponCfg.typeId === 1 || weaponCfg.typeId === 2) {
-        const silGeo = new THREE.CylinderGeometry(0.032, 0.032, 0.22, 6);
-        silGeo.rotateX(Math.PI / 2);
-        const silMat = new THREE.MeshStandardMaterial({ color: 0x262b28, metalness: 0.6, roughness: 0.3 });
-        const silencer = new THREE.Mesh(silGeo, silMat);
-        silencer.position.set(0.12, 0.81, 0.25 + gunLength * 0.85 + 0.08);
-        unitGroup.add(silencer);
-    }
-
-    if (weaponCfg.typeId >= 5) {
-        const scopeGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.28, 6);
-        scopeGeo.rotateX(Math.PI / 2);
-        const scope = new THREE.Mesh(scopeGeo, gunMat);
-        scope.position.set(0.12, 0.89, 0.42);
-        unitGroup.add(scope);
-    }
+    unitGroup.add(createWeaponMesh(weaponCfg));
 
     return unitGroup;
 }
@@ -853,8 +1104,7 @@ function buildMilitaryTent() {
     tentGroup.add(walls);
 
     const roofGeo = new THREE.CylinderGeometry(1.38, 1.38, 2.85, 3);
-    roofGeo.rotateZ(Math.PI / 2);
-    roofGeo.rotateY(Math.PI / 2);
+    roofGeo.rotateX(-Math.PI / 2);
     const roof = new THREE.Mesh(roofGeo, roofMat);
     roof.position.y = 1.25;
     roof.scale.set(1, 0.65, 1);
@@ -894,6 +1144,182 @@ function buildMilitaryTent() {
     tentGroup.add(lantern);
 
     scene.add(tentGroup);
+}
+
+const OBSTACLES = [];
+
+function buildSwampDecor() {
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d3125, roughness: 0.9, flatShading: true });
+    const crownMat = new THREE.MeshStandardMaterial({ color: 0x2c4632, roughness: 0.9, flatShading: true });
+    const crownMat2 = new THREE.MeshStandardMaterial({ color: 0x253a2a, roughness: 0.9, flatShading: true });
+
+    let placed = 0, attempts = 0;
+    while (placed < 26 && attempts < 400) {
+        attempts++;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 6.2 + Math.random() * 16;
+        const x = Math.cos(angle) * dist;
+        const z = Math.sin(angle) * dist;
+        if (OBSTACLES.some(o => Math.hypot(o.x - x, o.z - z) < 2.4)) continue;
+        const h = 2.2 + Math.random() * 2.2;
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16 + Math.random() * 0.1, 0.26, h, 6), trunkMat);
+        trunk.position.set(x, h / 2, z);
+        trunk.castShadow = true;
+        scene.add(trunk);
+        const crown = new THREE.Mesh(new THREE.ConeGeometry(0.9 + Math.random() * 0.6, 1.8 + Math.random() * 1.2, 7), Math.random() > 0.5 ? crownMat : crownMat2);
+        crown.position.set(x, h + 0.55, z);
+        crown.castShadow = true;
+        scene.add(crown);
+        OBSTACLES.push({ x, z, r: 0.36 });
+        placed++;
+    }
+
+    const puddleMat = new THREE.MeshStandardMaterial({ color: 0x14231f, roughness: 0.15, metalness: 0.35, flatShading: true });
+    const puddleSpots = [[-9.5, 7.2, 2.4, 1.6], [8.6, -6.8, 2.8, 1.8], [-7.4, -9.8, 2.0, 1.4]];
+    puddleSpots.forEach(([px, pz, rx, rz]) => {
+        const puddle = new THREE.Mesh(new THREE.CircleGeometry(1, 20), puddleMat);
+        puddle.scale.set(rx, rz, 1);
+        puddle.rotation.x = -Math.PI / 2;
+        puddle.position.set(px, 0.02, pz);
+        scene.add(puddle);
+    });
+
+    const grassMats = [0x35503a, 0x2c4632, 0x3e5a40].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true }));
+    for (let i = 0; i < 90; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 4.8 + Math.random() * 18;
+        const x = Math.cos(angle) * dist;
+        const z = Math.sin(angle) * dist;
+        if (puddleSpots.some(([px, pz, rx, rz]) => Math.abs(px - x) < rx + 0.3 && Math.abs(pz - z) < rz + 0.3)) continue;
+        const n = 2 + Math.floor(Math.random() * 3);
+        for (let j = 0; j < n; j++) {
+            const blade = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.3 + Math.random() * 0.3, 4), grassMats[Math.floor(Math.random() * grassMats.length)]);
+            blade.position.set(x + (Math.random() - 0.5) * 0.35, 0.18, z + (Math.random() - 0.5) * 0.35);
+            scene.add(blade);
+        }
+    }
+}
+
+// Лесопилка возле палатки с понятной подсветкой кликабельности
+function buildSawmill() {
+    const sawX = 1.95;
+    const sawZ = -0.2;
+
+    // Подсветка площадки лесопилки на полу
+    const groundPad = new THREE.Mesh(
+        new THREE.BoxGeometry(1.1, 0.06, 1.55),
+        new THREE.MeshStandardMaterial({ color: 0x334237, roughness: 0.8, flatShading: true })
+    );
+    groundPad.position.set(sawX, 0.16, sawZ);
+    groundPad.receiveShadow = true;
+    scene.add(groundPad);
+
+    const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xf59e0b,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide
+    });
+    const ringMesh = new THREE.Mesh(new THREE.RingGeometry(0.72, 0.86, 24), ringMat);
+    ringMesh.rotation.x = -Math.PI / 2;
+    ringMesh.scale.set(0.85, 1.15, 1);
+    ringMesh.position.set(sawX, 0.2, sawZ);
+    scene.add(ringMesh);
+    state.sawmillRingMesh = ringMesh;
+    state.sawmillRingMat = ringMat;
+
+    const grp = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b5035, roughness: 0.85, flatShading: true });
+    const trimMat = new THREE.MeshStandardMaterial({ color: 0x8c6842, roughness: 0.75, flatShading: true });
+    const sawRoofMat = new THREE.MeshStandardMaterial({ color: 0x3d5238, roughness: 0.85, flatShading: true });
+
+    const base = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.52, 1.25), woodMat);
+    base.position.y = 0.26;
+    base.castShadow = true;
+    grp.add(base);
+
+    // Опорные столбы и тёплый фонарь лесопилки
+    const postGeo = new THREE.BoxGeometry(0.12, 0.65, 0.12);
+    [[-0.72, 0.55], [0.72, 0.55], [-0.72, -0.55], [0.72, -0.55]].forEach(([px, pz]) => {
+        const post = new THREE.Mesh(postGeo, trimMat);
+        post.position.set(px, 0.52, pz);
+        post.castShadow = true;
+        grp.add(post);
+    });
+
+    const sawRoofGeo = new THREE.CylinderGeometry(1.02, 1.02, 1.78, 3);
+    sawRoofGeo.rotateX(-Math.PI / 2);
+    const sawRoof = new THREE.Mesh(sawRoofGeo, sawRoofMat);
+    sawRoof.position.y = 0.84;
+    sawRoof.scale.set(1, 0.55, 1);
+    sawRoof.castShadow = true;
+    grp.add(sawRoof);
+
+    // Пильный диск
+    const blade = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.32, 0.32, 0.05, 18),
+        new THREE.MeshStandardMaterial({ color: 0xb0bec5, metalness: 0.85, roughness: 0.25, emissive: 0x1d2923 })
+    );
+    blade.position.set(0, 0.62, 0.64);
+    blade.rotation.z = Math.PI / 2;
+    grp.add(blade);
+    state.sawmillBladeMesh = blade;
+
+    // Тёплый фонарь над входом в лесопилку
+    const lamp = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 0.16, 0.16),
+        new THREE.MeshBasicMaterial({ color: 0xffca6b })
+    );
+    lamp.position.set(0, 1.08, 0.72);
+    grp.add(lamp);
+
+    // Штабель брёвен + дополнительные брёвна при прокачке
+    const logMat = new THREE.MeshStandardMaterial({ color: 0x7d5c3b, roughness: 0.9, flatShading: true });
+    state.sawmillExtraLogs = [];
+    for (let i = 0; i < 6; i++) {
+        const log = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 1.15, 8), logMat);
+        log.rotation.z = Math.PI / 2;
+        const isBaseLog = i < 3;
+        log.position.set(-0.95, 0.12 + Math.floor(i / 3) * 0.2, -0.35 + (i % 3) * 0.22);
+        log.castShadow = true;
+        if (!isBaseLog) {
+            log.visible = false;
+            state.sawmillExtraLogs.push(log);
+        }
+        grp.add(log);
+    }
+
+    grp.scale.setScalar(0.62);
+    grp.position.set(sawX, 0.18, sawZ);
+    grp.rotation.y = Math.PI / 2;
+    scene.add(grp);
+    state.sawmillMesh = grp;
+
+    // Плавающий маркер-указатель над лесопилкой
+    const badgeGroup = new THREE.Group();
+    badgeGroup.position.set(sawX, 1.48, sawZ);
+    const pill = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.24, 0.08, 16),
+        new THREE.MeshBasicMaterial({ color: 0xfbbf24 })
+    );
+    pill.rotation.x = Math.PI / 2;
+    badgeGroup.add(pill);
+    const core = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.18, 0.12),
+        new THREE.MeshBasicMaterial({ color: 0x1b261f })
+    );
+    core.position.z = 0.02;
+    badgeGroup.add(core);
+    scene.add(badgeGroup);
+    state.sawmillBadgeGroup = badgeGroup;
+
+    const hitMesh = new THREE.Mesh(new THREE.BoxGeometry(1.45, 1.55, 1.15), new THREE.MeshBasicMaterial({ visible: false }));
+    hitMesh.position.set(sawX, 0.72, sawZ);
+    hitMesh.rotation.y = Math.PI / 2;
+    scene.add(hitMesh);
+    state.sawmillHitMesh = hitMesh;
+
+    refreshSawmillVisuals();
 }
 
 function buildEnvironment() {
@@ -938,16 +1364,20 @@ function buildEnvironment() {
     });
 
     buildMilitaryTent();
+    buildSwampDecor();
+    buildSawmill();
 
     const rockMat = new THREE.MeshStandardMaterial({ color: 0x27332d, flatShading: true });
     for (let i = 0; i < 25; i++) {
         const angle = Math.random() * Math.PI * 2;
         const dist = 7.5 + Math.random() * 17;
-        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4 + Math.random() * 0.7, 0), rockMat);
+        const rockSize = 0.4 + Math.random() * 0.7;
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rockSize, 0), rockMat);
         rock.position.set(Math.cos(angle) * dist, 0.2, Math.sin(angle) * dist);
         rock.rotation.set(Math.random(), Math.random(), Math.random());
         rock.castShadow = true;
         scene.add(rock);
+        OBSTACLES.push({ x: rock.position.x, z: rock.position.z, r: rockSize * 0.8 });
     }
 
     state.slots.forEach(slot => {
@@ -1000,13 +1430,11 @@ let isPointerDown = false;
 let pointerDownPos = { x: 0, y: 0 };
 let prevX = 0;
 
-// Переменные для перетаскивания бойцов
 let holdTimer = null;
 let draggingSlotId = null;
 let dragGhostMesh = null;
 let hoverTargetSlotId = null;
 
-// Переменные для щипка двумя пальцами (pinch-to-zoom)
 const activeTouches = new Map();
 let initialPinchDist = null;
 let initialPinchZoom = 1.0;
@@ -1021,6 +1449,10 @@ function getSlotHitAt(clientX, clientY) {
     pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointerNDC, camera);
+    if (state.sawmillHitMesh) {
+        const sawHits = raycaster.intersectObject(state.sawmillHitMesh, false);
+        if (sawHits.length > 0) return 'sawmill';
+    }
     const hits = raycaster.intersectObjects(clickablePads, false);
     if (hits.length > 0) {
         return hits[0].object.userData.slotId;
@@ -1036,7 +1468,6 @@ function startDraggingUnit(slotId, clientX, clientY) {
     closeSlotModal();
     playAtmosphericSound('click');
 
-    // Скрываем оригинал на платформе и создаем полупрозрачный фантом под палец
     slot.unitGroup.visible = false;
     dragGhostMesh = createFighterMesh(slot.unitType);
     const scale = 1 + Math.min(0.32, (slot.level - 1) * 0.02);
@@ -1058,7 +1489,8 @@ function updateDragGhostPosition(clientX, clientY) {
         dragGhostMesh.position.set(dragIntersectPoint.x, 0.45, dragIntersectPoint.z);
     }
 
-    const targetId = getSlotHitAt(clientX, clientY);
+    const rawTargetId = getSlotHitAt(clientX, clientY);
+    const targetId = (rawTargetId === 'sawmill') ? null : rawTargetId;
     hoverTargetSlotId = (targetId !== null && state.slots[targetId].unlocked) ? targetId : null;
 
     state.slots.forEach(s => {
@@ -1145,7 +1577,9 @@ canvas.addEventListener('pointerdown', (e) => {
 
     if (state.started) {
         const hitSlotId = getSlotHitAt(e.clientX, e.clientY);
-        if (hitSlotId !== null && state.slots[hitSlotId].unlocked && state.slots[hitSlotId].unitType) {
+        if (hitSlotId === 'sawmill') {
+            state.sawmillPulseTimer = 0.25;
+        } else if (hitSlotId !== null && state.slots[hitSlotId].unlocked && state.slots[hitSlotId].unitType) {
             clearTimeout(holdTimer);
             holdTimer = setTimeout(() => {
                 startDraggingUnit(hitSlotId, e.clientX, e.clientY);
@@ -1159,7 +1593,6 @@ window.addEventListener('pointermove', (e) => {
         activeTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
 
-    // Масштабирование щипком двумя пальцами на телефоне
     if (activeTouches.size === 2 && initialPinchDist) {
         const pts = Array.from(activeTouches.values());
         const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -1169,7 +1602,14 @@ window.addEventListener('pointermove', (e) => {
         return;
     }
 
-    if (!isPointerDown) return;
+    if (!isPointerDown) {
+        if (state.started && e.pointerType === 'mouse') {
+            const hit = getSlotHitAt(e.clientX, e.clientY);
+            sawmillHovered = hit === 'sawmill';
+            canvas.classList.toggle('can-interact', hit !== null);
+        }
+        return;
+    }
 
     if (draggingSlotId !== null) {
         updateDragGhostPosition(e.clientX, e.clientY);
@@ -1217,7 +1657,6 @@ window.addEventListener('pointercancel', (e) => {
     isPointerDown = false;
 });
 
-// Отдаление/приближение колесиком мыши на ПК
 canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     camZoom = Math.max(0.85, Math.min(1.55, camZoom + e.deltaY * 0.0008));
@@ -1231,6 +1670,7 @@ function handleCanvasTap(clientX, clientY) {
         openSlotModal(slotId);
     } else {
         closeSlotModal();
+        document.getElementById('sawmill-modal').classList.add('hidden');
     }
 }
 
@@ -1240,6 +1680,19 @@ function handleCanvasTap(clientX, clientY) {
 function getUpgradeCost(slot) {
     if (!slot.unitType) return 0;
     return Math.round(slot.unitType.upgBase * Math.pow(slot.unitType.upgMult, slot.level - 1));
+}
+
+function getSawmillMult() {
+    return state.sawmillLevel >= 1 ? 1 + (state.sawmillLevel - 1) * 0.5 : 1;
+}
+function applySawmillToFence() {
+    state.maxHp = Math.round(100 * getSawmillMult());
+    state.hp = state.maxHp;
+}
+
+function getSlotFireRate(slot) {
+    if (!slot.unitType) return 0;
+    return slot.unitType.fireRate + Math.max(0, slot.level - 1) * 0.05;
 }
 
 function getSlotDamage(slot) {
@@ -1260,6 +1713,7 @@ function highlightSelectedSlot(id) {
 }
 
 function openSlotModal(slotId) {
+    if (slotId === 'sawmill') { openSawmillModal(); return; }
     selectedSlotId = slotId;
     highlightSelectedSlot(slotId);
 
@@ -1308,7 +1762,7 @@ function openSlotModal(slotId) {
             btn.innerHTML = `
                 <div>
                     <div class="font-military text-[11px] text-[#e5f0ea]">${w.name}</div>
-                    <div class="text-[9px] font-semibold text-[#789183]">⚔️${w.baseDmg} · ${w.range}m</div>
+                    <div class="text-[9px] font-semibold text-[#789183]">⚔️${w.baseDmg}${w.shotgun ? ' ×4' : ''} · ${w.range}m</div>
                 </div>
                 <span class="font-military text-[11px] ${canAfford ? 'text-amber-400' : 'text-[#5b7065]'}">⚙️${w.baseCost}</span>
             `;
@@ -1325,7 +1779,10 @@ function openSlotModal(slotId) {
         manageView.classList.remove('hidden');
         manageView.classList.add('flex');
 
-        document.getElementById('manage-stats').textContent = `${dmg} DMG · ${slot.unitType.fireRate}/с`;
+        document.getElementById('manage-stats').textContent = `${dmg} DMG · ${getSlotFireRate(slot).toFixed(2)}/с`;
+        const nextDmg = Math.floor(slot.unitType.baseDmg * (1 + slot.level * 0.18));
+        const nextRate = getSlotFireRate(slot).toFixed(2);
+        document.getElementById('upgrade-preview').textContent = `+${nextDmg - dmg} DMG · ${nextRate}/с`;
         document.getElementById('manage-range').textContent = `${slot.unitType.range} м`;
         document.getElementById('upgrade-cost-label').textContent = `⚙️ ${upgCost}`;
         document.getElementById('dismiss-refund-label').textContent = `+⚙️ ${refund}`;
@@ -1361,7 +1818,7 @@ function unlockSlot(slotId) {
 }
 
 function updateSlotModalPosition() {
-    if (selectedSlotId === null) return;
+    if (selectedSlotId === null || selectedSlotId === 'sawmill') return;
     const slot = state.slots[selectedSlotId];
     const modal = document.getElementById('slot-modal');
     if (modal.classList.contains('hidden')) return;
@@ -1501,17 +1958,17 @@ function startWave() {
     playAtmosphericSound('horn');
 }
 
-function createZombieMesh() {
+function createZombieMesh(bodyColor, clothesColor) {
     const zombieGroup = new THREE.Group();
 
     const skinMat = new THREE.MeshStandardMaterial({
-        color: 0x8bb57e,
+        color: bodyColor || 0x8bb57e,
         emissive: 0x20301c,
         roughness: 0.65,
         flatShading: true
     });
     const clothesMat = new THREE.MeshStandardMaterial({
-        color: 0x627369,
+        color: clothesColor || 0x627369,
         emissive: 0x181f1b,
         roughness: 0.75,
         flatShading: true
@@ -1582,12 +2039,20 @@ function spawnZombie() {
     const x = Math.cos(angle) * spawnDist;
     const z = Math.sin(angle) * spawnDist;
 
-    const maxHp = Math.floor(32 * Math.pow(1.32, state.wave - 1));
-    const speed = 1.45 + Math.min(2.2, state.wave * 0.06) + (Math.random() * 0.3);
+    const roll = Math.random();
+    const kind = roll < 0.22 ? 'runner' : (roll < 0.40 ? 'brute' : 'normal');
+    let hpMult = 1, spMult = 1;
+    let bodyColor = 0x8bb57e, clothesColor = 0x627369;
+    if (kind === 'runner') { hpMult = 0.55; spMult = 1.6; bodyColor = 0x4e8f86; clothesColor = 0x2f6f6b; }
+    if (kind === 'brute') { hpMult = 1.7; spMult = 0.62; bodyColor = 0x9aa64e; clothesColor = 0x7d8a3e; }
+    const maxHp = Math.floor(32 * Math.pow(1.32, state.wave - 1) * hpMult);
+    const speed = (1.45 + Math.min(2.2, state.wave * 0.06) + (Math.random() * 0.3)) * spMult;
 
-    const { zombieGroup, hpBarGroup, hpFill } = createZombieMesh();
+    const { zombieGroup, hpBarGroup, hpFill } = createZombieMesh(bodyColor, clothesColor);
     zombieGroup.position.set(x, 0, z);
     zombieGroup.lookAt(0, 0, 0);
+    if (kind === 'runner') zombieGroup.scale.set(0.7, 0.95, 0.7);
+    if (kind === 'brute') zombieGroup.scale.set(1.3, 1.12, 1.3);
     scene.add(zombieGroup);
 
     state.zombies.push({
@@ -1597,7 +2062,7 @@ function spawnZombie() {
         hp: maxHp,
         maxHp,
         speed,
-        reward: 3 + Math.floor(state.wave * 0.6)
+        reward: 3 + Math.floor(state.wave * 0.6) + (kind === 'normal' ? 0 : 10)
     });
 }
 
@@ -1607,6 +2072,38 @@ function shootBullet(slot, targetZombie) {
 
     if (slot.unitGroup) {
         slot.unitGroup.lookAt(targetPos.x, 0.16, targetPos.z);
+        let mw = null;
+        slot.unitGroup.traverse(o => { if (o.userData && o.userData.muzzle) mw = o.userData.muzzle; });
+        if (mw) {
+            mw.material.opacity = 0.95;
+            mw.scale.setScalar(1.6);
+            slot.muzzleMesh = mw;
+            slot.muzzleTimer = 0.06;
+        }
+    }
+
+    if (slot.unitType.shotgun) {
+        const dir = targetPos.clone().sub(startPos).setY(0).normalize();
+        const perp = new THREE.Vector3(-dir.z, 0, dir.x);
+        const candidates = state.zombies.filter(z => {
+            if (z === targetZombie) return false;
+            const to = z.mesh.position.clone().sub(startPos).setY(0);
+            const d = to.length();
+            if (d > slot.unitType.range) return false;
+            return to.normalize().dot(dir) > Math.cos(0.26);
+        }).sort((a, b) => a.mesh.position.distanceTo(startPos) - b.mesh.position.distanceTo(startPos));
+
+        const targets = [targetZombie, candidates[0] || targetZombie, candidates[1] || candidates[0] || targetZombie, candidates[2] || candidates[0] || targetZombie];
+        const offsets = [-0.1, -0.034, 0.034, 0.1];
+        const pelletDmg = getSlotDamage(slot);
+        targets.forEach((tz, i) => {
+            const bulletMesh = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshBasicMaterial({ color: 0xfcd34d }));
+            bulletMesh.position.copy(startPos).addScaledVector(perp, offsets[i]);
+            scene.add(bulletMesh);
+            state.bullets.push({ mesh: bulletMesh, target: tz, dmg: pelletDmg, speed: 30 });
+        });
+        playShotgunBlast();
+        return;
     }
 
     const bulletGeo = new THREE.SphereGeometry(0.075, 6, 6);
@@ -1623,6 +2120,10 @@ function shootBullet(slot, targetZombie) {
     });
 
     playWeaponShot(slot.unitType.typeId);
+}
+
+function playShotgunBlast() {
+    fireSound('shotgun');
 }
 
 // ==========================================
@@ -1643,6 +2144,31 @@ function animate(now) {
             s.plusGroup.rotation.y = now * 0.0012;
         }
     });
+
+    // Оформление и пульсация лесопилки для наглядной кликабельности
+    if (state.sawmillPulseTimer > 0) {
+        state.sawmillPulseTimer = Math.max(0, state.sawmillPulseTimer - dt);
+    }
+    const sawWave = 0.5 + 0.5 * Math.sin(now * 0.0045);
+    const clickBoost = state.sawmillPulseTimer > 0 ? (state.sawmillPulseTimer / 0.25) * 0.14 : 0;
+    const hoverBoost = sawmillHovered ? 0.08 : 0;
+
+    if (state.sawmillMesh) {
+        const baseScale = 0.62 + clickBoost + hoverBoost;
+        state.sawmillMesh.scale.setScalar(baseScale);
+    }
+    if (state.sawmillRingMesh && state.sawmillRingMat) {
+        const ringPulse = 1 + sawWave * 0.12 + clickBoost + hoverBoost;
+        state.sawmillRingMesh.scale.set(0.85 * ringPulse, 1.15 * ringPulse, 1);
+        state.sawmillRingMat.opacity = sawmillHovered ? 1.0 : (0.55 + sawWave * 0.35);
+    }
+    if (state.sawmillBadgeGroup) {
+        state.sawmillBadgeGroup.position.y = 1.48 + Math.sin(now * 0.004) * 0.08;
+        state.sawmillBadgeGroup.lookAt(camera.position);
+    }
+    if (state.sawmillBladeMesh && state.sawmillLevel > 0) {
+        state.sawmillBladeMesh.rotation.y += dt * (1.8 + state.sawmillLevel * 0.6);
+    }
 
     if (!state.started) {
         camAngle += dt * 0.15;
@@ -1678,6 +2204,18 @@ function animate(now) {
         if (!(atFenceX && atFenceZ)) {
             dir.normalize();
             z.mesh.position.addScaledVector(dir, z.speed * dt);
+            for (let k = 0; k < OBSTACLES.length; k++) {
+                const ob = OBSTACLES[k];
+                const dx = z.mesh.position.x - ob.x;
+                const dz = z.mesh.position.z - ob.z;
+                const d = Math.hypot(dx, dz);
+                const minD = ob.r + 0.32;
+                if (d < minD && d > 0.001) {
+                    const push = (minD - d) / d;
+                    z.mesh.position.x += dx * push;
+                    z.mesh.position.z += dz * push;
+                }
+            }
         } else {
             state.hp -= (7 + state.wave * 0.5) * dt;
             updateHUD();
@@ -1691,6 +2229,14 @@ function animate(now) {
     state.slots.forEach(slot => {
         if (!slot.unitType || slot.level <= 0 || slot.id === draggingSlotId) return;
         slot.cooldown -= dt;
+
+        if (slot.muzzleMesh) {
+            slot.muzzleTimer -= dt;
+            const k = Math.max(0, slot.muzzleTimer / 0.06);
+            slot.muzzleMesh.material.opacity = k;
+            slot.muzzleMesh.scale.setScalar(0.8 + k * 0.9);
+            if (slot.muzzleTimer <= 0) slot.muzzleMesh = null;
+        }
 
         if (slot.cooldown <= 0 && state.zombies.length > 0) {
             let nearest = null;
@@ -1708,7 +2254,7 @@ function animate(now) {
 
             if (nearest) {
                 shootBullet(slot, nearest);
-                slot.cooldown = 1 / slot.unitType.fireRate;
+                slot.cooldown = 1 / getSlotFireRate(slot);
             }
         }
     });
@@ -1765,7 +2311,6 @@ function animate(now) {
     renderer.render(scene, camera);
 }
 
-// Прорыв периметра: бойцы, шестеренки и номер волны сохраняются
 function triggerPerimeterBreach() {
     state.inWave = false;
     state.zombiesToSpawn = 0;
@@ -1859,7 +2404,10 @@ document.getElementById('btn-confirm-wipe').addEventListener('click', () => {
     state.zombiesToSpawn = 0;
     state.wave = 1;
     state.scrap = 60;
+    state.sawmillLevel = 0;
+    refreshSawmillVisuals();
     state.hp = 100;
+    state.maxHp = 100;
     state.inWave = false;
 
     state.slots.forEach((s, idx) => {
@@ -1889,6 +2437,45 @@ document.getElementById('btn-confirm-wipe').addEventListener('click', () => {
     playAtmosphericSound('click');
 });
 
+// ===== ЛЕСОПИЛКА =====
+const SAWMILL_PRICES = [100, 200, 300, 350, 450, 600, 800, 1050];
+function getSawmillNextCost() {
+    const lvl = state.sawmillLevel;
+    return lvl < SAWMILL_PRICES.length ? SAWMILL_PRICES[lvl] : Math.round(SAWMILL_PRICES[7] * Math.pow(1.35, lvl - 7));
+}
+function openSawmillModal() {
+    closeSlotModal();
+    const m = document.getElementById('sawmill-modal');
+    m.classList.remove('hidden');
+    document.getElementById('sawmill-lvl-val').textContent = state.sawmillLevel;
+    document.getElementById('sawmill-defense-val').textContent = `${Math.round(getSawmillMult() * 100)}%`;
+    document.getElementById('sawmill-upg-label').textContent = state.sawmillLevel === 0 ? 'ПОСТРОИТЬ' : 'УЛУЧШИТЬ';
+    const cost = getSawmillNextCost();
+    document.getElementById('sawmill-cost-label').textContent = `⚙️ ${cost}`;
+    document.getElementById('sawmill-preview').textContent = state.sawmillLevel === 0 ? '→ 100%' : `→ ${Math.round((1 + state.sawmillLevel * 0.5) * 100)}%`;
+    const btn = document.getElementById('btn-upgrade-sawmill');
+    const canAfford = state.scrap >= cost;
+    btn.className = `w-full py-2 px-3 rounded-lg font-military text-xs transition flex flex-col items-center justify-center ${canAfford ? 'bg-[#395e4a] hover:bg-[#47755c] text-white cursor-pointer shadow' : 'bg-[#1c2621] text-[#55695e] cursor-not-allowed'}`;
+    btn.onclick = () => upgradeSawmill();
+}
+function upgradeSawmill() {
+    const cost = getSawmillNextCost();
+    if (state.scrap < cost) return;
+    state.scrap -= cost;
+    state.sawmillLevel += 1;
+    state.sawmillPulseTimer = 0.35;
+    applySawmillToFence();
+    refreshSawmillVisuals();
+    saveGameProgress();
+    updateHUD();
+    playAtmosphericSound('click');
+    openSawmillModal();
+}
+document.getElementById('btn-close-sawmill').addEventListener('click', () => {
+    playAtmosphericSound('click');
+    document.getElementById('sawmill-modal').classList.add('hidden');
+});
+
 window.addEventListener('resize', () => {
     camera.aspect = wrapper.clientWidth / wrapper.clientHeight;
     camera.updateProjectionMatrix();
@@ -1899,168 +2486,67 @@ updateLanguage();
 requestAnimationFrame(animate);
 </script>
 
-<!-- ==================== ЧТО НОВОГО + ВЕРСИЯ + ОБНОВЛЕНИЯ ==================== -->
-<style>
-  #whats-new-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 10, 7, 0.55);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    z-index: 9999;
-    justify-content: center;
-    align-items: center;
-  }
-  #whats-new-modal {
-    position: relative;
-    background: #131d18;
-    border: 1px solid #2d4237;
-    color: #d6dfd9;
-    max-width: 460px;
-    width: 88%;
-    max-height: 78vh;
-    border-radius: 16px;
-    padding: 22px 26px;
-    overflow-y: auto;
-    font-size: 14px;
-    line-height: 1.55;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  }
-  #whats-new-title {
-    margin: 0 0 12px 0;
-    font-size: 18px;
-    color: #fbbf24;
-    font-family: 'Russo One', Arial, sans-serif;
-    letter-spacing: 0.04em;
-  }
-  #whats-new-close {
-    position: absolute;
-    top: 10px;
-    right: 12px;
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    color: #7a8f80;
-    padding: 4px;
-  }
-  #whats-new-close:hover { color: #d6dfd9; }
-
-  #version-label {
-    display: none;
-    position: fixed;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    left: 12px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.45);
-    z-index: 9998;
-    pointer-events: none;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  #update-banner {
-    display: none;
-    position: fixed;
-    top: calc(0.75rem + env(safe-area-inset-top));
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9997;
-    background: #1e2b1e;
-    border: 1px solid #7a9a4a;
-    color: #e8f0d8;
-    padding: 8px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
-  }
-  #update-now-btn {
-    background: #7a9a4a;
-    color: #10180d;
-    border: none;
-    border-radius: 8px;
-    padding: 4px 12px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-</style>
-
-<div id="whats-new-overlay">
-  <div id="whats-new-modal">
-    <button id="whats-new-close" title="Закрыть">✕</button>
-    <h2 id="whats-new-title">ЧТО НОВОГО</h2>
-    <div id="whats-new-text"></div>
-  </div>
-</div>
-
-<div id="version-label"></div>
-
-<div id="update-banner">
-  <span>Доступно обновление</span>
-  <button id="update-now-btn">ОБНОВИТЬ 🔄</button>
+<!-- ═══════ ОКНО «ЧТО НОВОГО» ═══════ -->
+<div id="whatsnew-overlay" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4" style="background: rgba(6,10,8,0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
+    <div class="relative w-full max-w-sm bg-[#111915]/95 border border-[#3b5246] rounded-2xl p-5 shadow-2xl max-h-[70vh] overflow-y-auto">
+        <button id="btn-close-whatsnew" class="absolute top-2 right-3 text-[#7d957f] hover:text-white text-xl leading-none cursor-pointer">✕</button>
+        <h2 class="font-military text-lg text-amber-300 mb-3">📋 ЧТО НОВОГО</h2>
+        <div class="text-xs text-[#c9d8ce] font-tactical space-y-2 leading-relaxed">
+            <p class="font-military text-amber-300 mb-1">PILOT 1.3</p>
+            <ul class="list-disc pl-4 space-y-1">
+                <li>Внесенные изменения: добавлена функция масштабирования камеры. Исправлены ошибки. Добавлена возможность смены взаимного расположения бойцов (удерживайте бойца, затем переместите в другое доступное место). Добавлена полоса окончания волны. Внесены изменения в систему покупки бойцов. Снижены цены на улучшения бойцов.</li>
+                <li>Новое оружие: XM-1014 — дробовик со залпом из 4 дробин узким треугольником.</li>
+                <li>Оружия получили детальные модели и вспышки у дула.</li>
+                <li>Каждое улучшение оружия добавляет +0.05 к скорострельности (зелёное превью в кнопке УЛУЧШИТЬ).</li>
+                <li>На карте появились деревья, трава и лужи. Зомби больше не проходят сквозь камни и деревья.</li>
+                <li>Возле палатки появилась лесопилка: улучшайте её, чтобы укреплять забор — прочность растёт с 100% до 150%, 200% и дальше. При улучшении забор полностью восстанавливается.</li>
+            </ul>
+        </div>
+        <div id="whatsnew-version" class="mt-4 text-[10px] text-white/40 font-military">PILOT 1.3</div>
+    </div>
 </div>
 
 <script>
-  // ═══════════ ВВЕДИТЕ ВЕРСИЮ ИГРЫ ═══════════
-  const GAME_VERSION = "PILOT 1.1";
+const GAME_VERSION = "PILOT 1.3";
+(function() {
+    const vEl = document.getElementById('whatsnew-version');
+    if (vEl) vEl.textContent = GAME_VERSION;
+    const overlay = document.getElementById('whatsnew-overlay');
+    document.getElementById('btn-whats-new').addEventListener('click', (e) => {
+        e.stopPropagation();
+        playAtmosphericSound('click');
+        settingsDropdown.classList.add('hidden');
+        overlay.classList.remove('hidden');
+    });
+    function closeWhatsNew() { overlay.classList.add('hidden'); }
+    document.getElementById('btn-close-whatsnew').addEventListener('click', closeWhatsNew);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeWhatsNew(); });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeWhatsNew(); });
 
-  // ═══════════ ВВЕДИТЕ ТЕКСТ ОБНОВЛЕНИЙ ═══════════
-  // Пишите обычным HTML: <p> — абзац, <b> — жирный, <ul><li> — список.
-  const CHANGELOG = `
-    <p style="color:#fbbf24;font-weight:bold;margin:0 0 6px 0;">PILOT 1.1</p>
-    <ul style="list-style:disc;padding-left:20px;margin:0 0 14px 0;">
-      <li>Добавлена функция масштабирования камеры</li>
-      <li>Исправлены ошибки</li>
-      <li>Добавлена возможность смены взаимного расположения бойцов (удерживайте бойца, затем переместите в другое доступное место)</li>
-      <li>Добавлена полоса окончания волны</li>
-      <li>Внесены изменения в систему покупки бойцов</li>
-      <li>Снижены цены на улучшения бойцов</li>
-    </ul>
-  `;
-  // ═══════════ ДАЛЬШЕ МОЖНО НЕ ТРОГАТЬ ═══════════
-
-  // Версия в углу — видна только пока открыто окно
-  const wnOverlay = document.getElementById('whats-new-overlay');
-  document.getElementById('version-label').textContent = GAME_VERSION;
-  document.getElementById('whats-new-text').innerHTML = CHANGELOG;
-
-  document.getElementById('btn-whats-new').addEventListener('click', () => {
-    wnOverlay.style.display = 'flex';
-    document.getElementById('version-label').style.display = 'block';
-  });
-  function closeWhatsNew() {
-    wnOverlay.style.display = 'none';
-    document.getElementById('version-label').style.display = 'none';
-  }
-  document.getElementById('whats-new-close').addEventListener('click', closeWhatsNew);
-  wnOverlay.addEventListener('click', (e) => { if (e.target === wnOverlay) closeWhatsNew(); });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && wnOverlay.style.display === 'flex') closeWhatsNew();
-  });
-
-  // ── Автопроверка обновлений ──
-  async function checkForUpdate() {
-    try {
-      const res = await fetch(location.href.split('?')[0], { cache: 'no-store' });
-      const text = await res.text();
-      const m = text.match(/const GAME_VERSION = "([^"]+)"/);
-      if (m && m[1] !== GAME_VERSION) {
-        document.getElementById('update-banner').style.display = 'flex';
-      }
-    } catch (e) { /* нет сети — игра работает как обычно */ }
-  }
-  checkForUpdate();
-  setInterval(checkForUpdate, 5 * 60 * 1000); // проверка каждые 5 минут
-
-  document.getElementById('update-now-btn').addEventListener('click', () => {
-    location.replace(location.href.split('?')[0] + '?v=' + Date.now());
-  });
+    async function checkForUpdate() {
+        try {
+            const res = await fetch(location.href.split("?")[0], { cache: "no-store" });
+            const text = await res.text();
+            const m = text.match(/const GAME_VERSION = "([^"]+)"/);
+            if (m && m[1] !== GAME_VERSION) {
+                const banner = document.getElementById('update-banner');
+                if (banner) banner.style.display = 'flex';
+            }
+        } catch (e) {}
+    }
+    checkForUpdate();
+    setInterval(checkForUpdate, 5 * 60 * 1000);
+})();
 </script>
-<!-- ==================== КОНЕЦ БЛОКА ==================== -->
 
+<div id="update-banner" style="display:none; position:fixed; top: calc(0.75rem + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); z-index:9997; background:#1e2b1e; border:1px solid #7a9a4a; color:#e8f0d8; padding:8px 14px; border-radius:10px; font-size:13px; align-items:center; gap:10px; box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+    <span>Доступно обновление</span>
+    <button id="update-now-btn" style="background:#7a9a4a; color:#10180d; border:none; border-radius:8px; padding:4px 12px; cursor:pointer; font-weight:bold;">ОБНОВИТЬ 🔄</button>
+</div>
+<script>
+document.getElementById('update-now-btn').addEventListener('click', () => {
+    location.replace(location.href.split("?")[0] + "?v=" + Date.now());
+});
+</script>
 </body>
 </html>
