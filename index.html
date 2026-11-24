@@ -60,13 +60,6 @@
         .font-tactical {
             font-family: 'Exo 2', sans-serif;
         }
-        /* Отступ сверху с учётом «чёлки» и системной панели устройства */
-        .safe-top {
-            padding-top: calc(0.75rem + env(safe-area-inset-top));
-        }
-        @supports not (padding: env(safe-area-inset-top)) {
-            .safe-top { padding-top: 0.75rem; }
-        }
         ::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -87,7 +80,7 @@
     <canvas id="gameCanvas"></canvas>
 
     <!-- Верхняя панель (Ресурсы, Прогресс волны и Настройки) -->
-    <div class="absolute top-0 left-0 right-0 p-3 safe-top flex justify-between items-start pointer-events-none z-20">
+    <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start pointer-events-none z-20" style="padding-top: calc(0.75rem + env(safe-area-inset-top));">
         <!-- Статистика в бою -->
         <div id="hud-stats" class="hidden flex-col gap-1.5 pointer-events-auto">
             <div class="bg-[#111915]/90 border border-[#2d3d34] px-3 py-1.5 rounded-xl backdrop-blur-md flex items-center gap-3 shadow-lg">
@@ -122,6 +115,10 @@
                 <button id="btn-lang" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
                     <span data-i18n="langLabel">ЯЗЫК</span>
                     <span id="lang-code" class="text-amber-400">RU</span>
+                </button>
+                <button id="btn-whats-new" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
+                    <span>ЧТО НОВОГО?</span>
+                    <span>❓</span>
                 </button>
                 <button id="btn-open-wipe" class="hidden w-full px-3 py-2 rounded-lg bg-[#2b1616] hover:bg-[#422020] border border-[#5e2c2c] text-red-300 text-xs font-military flex justify-between items-center transition cursor-pointer">
                     <span data-i18n="resetBtn">СБРОС</span>
@@ -1901,5 +1898,169 @@ window.addEventListener('resize', () => {
 updateLanguage();
 requestAnimationFrame(animate);
 </script>
+
+<!-- ==================== ЧТО НОВОГО + ВЕРСИЯ + ОБНОВЛЕНИЯ ==================== -->
+<style>
+  #whats-new-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 10, 7, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+  }
+  #whats-new-modal {
+    position: relative;
+    background: #131d18;
+    border: 1px solid #2d4237;
+    color: #d6dfd9;
+    max-width: 460px;
+    width: 88%;
+    max-height: 78vh;
+    border-radius: 16px;
+    padding: 22px 26px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.55;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  }
+  #whats-new-title {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    color: #fbbf24;
+    font-family: 'Russo One', Arial, sans-serif;
+    letter-spacing: 0.04em;
+  }
+  #whats-new-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #7a8f80;
+    padding: 4px;
+  }
+  #whats-new-close:hover { color: #d6dfd9; }
+
+  #version-label {
+    display: none;
+    position: fixed;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    left: 12px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+    z-index: 9998;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #update-banner {
+    display: none;
+    position: fixed;
+    top: calc(0.75rem + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9997;
+    background: #1e2b1e;
+    border: 1px solid #7a9a4a;
+    color: #e8f0d8;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+  }
+  #update-now-btn {
+    background: #7a9a4a;
+    color: #10180d;
+    border: none;
+    border-radius: 8px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+</style>
+
+<div id="whats-new-overlay">
+  <div id="whats-new-modal">
+    <button id="whats-new-close" title="Закрыть">✕</button>
+    <h2 id="whats-new-title">ЧТО НОВОГО</h2>
+    <div id="whats-new-text"></div>
+  </div>
+</div>
+
+<div id="version-label"></div>
+
+<div id="update-banner">
+  <span>Доступно обновление</span>
+  <button id="update-now-btn">ОБНОВИТЬ 🔄</button>
+</div>
+
+<script>
+  // ═══════════ ВВЕДИТЕ ВЕРСИЮ ИГРЫ ═══════════
+  const GAME_VERSION = "PILOT 1.1";
+
+  // ═══════════ ВВЕДИТЕ ТЕКСТ ОБНОВЛЕНИЙ ═══════════
+  // Пишите обычным HTML: <p> — абзац, <b> — жирный, <ul><li> — список.
+  const CHANGELOG = `
+    <p style="color:#fbbf24;font-weight:bold;margin:0 0 6px 0;">PILOT 1.1</p>
+    <ul style="list-style:disc;padding-left:20px;margin:0 0 14px 0;">
+      <li>Добавлена функция масштабирования камеры</li>
+      <li>Исправлены ошибки</li>
+      <li>Добавлена возможность смены взаимного расположения бойцов (удерживайте бойца, затем переместите в другое доступное место)</li>
+      <li>Добавлена полоса окончания волны</li>
+      <li>Внесены изменения в систему покупки бойцов</li>
+      <li>Снижены цены на улучшения бойцов</li>
+    </ul>
+  `;
+  // ═══════════ ДАЛЬШЕ МОЖНО НЕ ТРОГАТЬ ═══════════
+
+  // Версия в углу — видна только пока открыто окно
+  const wnOverlay = document.getElementById('whats-new-overlay');
+  document.getElementById('version-label').textContent = GAME_VERSION;
+  document.getElementById('whats-new-text').innerHTML = CHANGELOG;
+
+  document.getElementById('btn-whats-new').addEventListener('click', () => {
+    wnOverlay.style.display = 'flex';
+    document.getElementById('version-label').style.display = 'block';
+  });
+  function closeWhatsNew() {
+    wnOverlay.style.display = 'none';
+    document.getElementById('version-label').style.display = 'none';
+  }
+  document.getElementById('whats-new-close').addEventListener('click', closeWhatsNew);
+  wnOverlay.addEventListener('click', (e) => { if (e.target === wnOverlay) closeWhatsNew(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && wnOverlay.style.display === 'flex') closeWhatsNew();
+  });
+
+  // ── Автопроверка обновлений ──
+  async function checkForUpdate() {
+    try {
+      const res = await fetch(location.href.split('?')[0], { cache: 'no-store' });
+      const text = await res.text();
+      const m = text.match(/const GAME_VERSION = "([^"]+)"/);
+      if (m && m[1] !== GAME_VERSION) {
+        document.getElementById('update-banner').style.display = 'flex';
+      }
+    } catch (e) { /* нет сети — игра работает как обычно */ }
+  }
+  checkForUpdate();
+  setInterval(checkForUpdate, 5 * 60 * 1000); // проверка каждые 5 минут
+
+  document.getElementById('update-now-btn').addEventListener('click', () => {
+    location.replace(location.href.split('?')[0] + '?v=' + Date.now());
+  });
+</script>
+<!-- ==================== КОНЕЦ БЛОКА ==================== -->
+
 </body>
 </html>
