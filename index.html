@@ -2,7 +2,10 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Swamp Perimeter">
     <title>Swamp Perimeter: Outpost</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -76,7 +79,7 @@
     <!-- 3D Сцена -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Верхняя панель (Ресурсы, Звук, Язык, Полный сброс) -->
+    <!-- Верхняя панель (Ресурсы, Прогресс волны и Настройки) -->
     <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start pointer-events-none z-20">
         <!-- Статистика в бою -->
         <div id="hud-stats" class="hidden flex-col gap-1.5 pointer-events-auto">
@@ -85,24 +88,39 @@
                 <span class="text-[#566b60] text-xs">|</span>
                 <span class="text-emerald-400 font-military text-sm flex items-center gap-1">🛡️ <span id="hp-val">100</span>%</span>
             </div>
-            <div class="bg-[#111915]/90 border border-[#2d3d34] px-3 py-1 rounded-xl backdrop-blur-md text-xs text-[#9cb3a6] font-tactical font-bold flex items-center gap-2">
-                <span><span data-i18n="wave">ВОЛНА</span>: <span id="wave-val" class="text-white font-military">1</span></span>
-                <span class="text-[#45594e]">•</span>
-                <span id="wave-status" class="text-amber-400/90" data-i18n="prepPhase">Ожидание</span>
+            <div class="bg-[#111915]/90 border border-[#2d3d34] px-3 py-1.5 rounded-xl backdrop-blur-md text-xs text-[#9cb3a6] font-tactical font-bold flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                    <span><span data-i18n="wave">ВОЛНА</span>: <span id="wave-val" class="text-white font-military">1</span></span>
+                    <span class="text-[#45594e]">•</span>
+                    <span id="wave-status" class="text-amber-400/90" data-i18n="prepPhase">Ожидание</span>
+                </div>
+                <!-- Прогресс-бар до конца волны -->
+                <div class="w-full h-1.5 bg-[#0a0f0c] rounded-full overflow-hidden border border-[#223029]">
+                    <div id="wave-progress-bar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-150" style="width: 100%"></div>
+                </div>
             </div>
         </div>
 
-        <!-- Кнопки настроек (Сброс прогресса, Язык и Звук) -->
-        <div class="flex gap-1.5 ml-auto pointer-events-auto">
-            <button id="btn-open-wipe" title="Полный сброс игры" class="hidden bg-[#2b1616]/90 hover:bg-[#422020] border border-[#5e2c2c] text-red-300 text-xs font-military px-2.5 py-2 rounded-xl transition shadow-md cursor-pointer">
-                🔄
+        <!-- Единая кнопка настроек -->
+        <div class="relative ml-auto pointer-events-auto">
+            <button id="btn-settings" class="bg-[#16211c]/90 hover:bg-[#22332a] border border-[#32473c] text-[#c7d6cd] text-sm font-military px-3 py-2 rounded-xl transition shadow-md cursor-pointer">
+                ⚙️
             </button>
-            <button id="btn-lang" class="bg-[#16211c]/90 hover:bg-[#22332a] border border-[#32473c] text-[#c7d6cd] text-xs font-military px-3 py-2 rounded-xl transition shadow-md cursor-pointer">
-                RU
-            </button>
-            <button id="btn-sound" class="bg-[#16211c]/90 hover:bg-[#22332a] border border-[#32473c] text-[#c7d6cd] text-xs font-bold px-3 py-2 rounded-xl transition shadow-md cursor-pointer">
-                🔊
-            </button>
+            <!-- Выпадающее меню настроек -->
+            <div id="settings-dropdown" class="hidden absolute right-0 mt-2 w-44 bg-[#111915]/95 border border-[#3b5246] rounded-xl p-2 shadow-2xl backdrop-blur-md flex flex-col gap-1.5">
+                <button id="btn-sound" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
+                    <span data-i18n="soundLabel">ЗВУК</span>
+                    <span id="sound-icon">🔊</span>
+                </button>
+                <button id="btn-lang" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
+                    <span data-i18n="langLabel">ЯЗЫК</span>
+                    <span id="lang-code" class="text-amber-400">RU</span>
+                </button>
+                <button id="btn-open-wipe" class="hidden w-full px-3 py-2 rounded-lg bg-[#2b1616] hover:bg-[#422020] border border-[#5e2c2c] text-red-300 text-xs font-military flex justify-between items-center transition cursor-pointer">
+                    <span data-i18n="resetBtn">СБРОС</span>
+                    <span>🔄</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -177,6 +195,17 @@
                 </button>
             </div>
         </div>
+
+        <!-- Покупка заблокированной позиции -->
+        <div id="modal-unlock-view" class="hidden flex-col gap-2">
+            <p class="text-[11px] text-[#9cb3a6] leading-snug" data-i18n="unlockDesc">
+                Открыть дополнительную огневую точку внутри периметра.
+            </p>
+            <button id="btn-unlock-slot" class="w-full py-2 px-3 rounded-lg font-military text-xs bg-[#395e4a] hover:bg-[#47755c] text-white transition flex items-center justify-center gap-2 cursor-pointer shadow">
+                <span data-i18n="unlockBtn">ОТКРЫТЬ</span>
+                <span class="text-amber-300" id="unlock-cost-label">⚙️ 80</span>
+            </button>
+        </div>
     </div>
 
     <!-- Экран прорыва обороны (Переигровка текущей волны без потери бойцов и шестеренок) -->
@@ -228,6 +257,12 @@ const i18n = {
         combatPhase: "Оборона!",
         slotTitle: "Позиция",
         emptySlot: "Свободная позиция",
+        lockedSlot: "Закрытая точка",
+        unlockDesc: "Открыть дополнительную огневую точку внутри периметра.",
+        unlockBtn: "ОТКРЫТЬ",
+        soundLabel: "ЗВУК",
+        langLabel: "ЯЗЫК",
+        resetBtn: "СБРОС",
         lvl: "Ур.",
         statsDmg: "Урон / Темп",
         statsRange: "Дальность",
@@ -252,6 +287,12 @@ const i18n = {
         combatPhase: "Defending!",
         slotTitle: "Position",
         emptySlot: "Empty Position",
+        lockedSlot: "Locked Position",
+        unlockDesc: "Unlock an additional firing position inside the perimeter.",
+        unlockBtn: "UNLOCK",
+        soundLabel: "SOUND",
+        langLabel: "LANG",
+        resetBtn: "RESET",
         lvl: "Lvl",
         statsDmg: "Damage / Rate",
         statsRange: "Range",
@@ -271,6 +312,25 @@ let currentLang = 'ru';
 let soundEnabled = true;
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+// Разблокировка Web Audio API для iOS Safari при первом касании
+let audioUnlocked = false;
+function unlockAudio() {
+    if (audioUnlocked) return;
+    try {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        const buffer = audioCtx.createBuffer(1, 1, 22050);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.start(0);
+        audioUnlocked = true;
+    } catch (e) {}
+}
+window.addEventListener('touchstart', unlockAudio, { passive: true });
+window.addEventListener('pointerdown', unlockAudio, { passive: true });
+
 let noiseBuffer = null;
 function getNoiseBuffer() {
     if (noiseBuffer) return noiseBuffer;
@@ -283,16 +343,6 @@ function getNoiseBuffer() {
     return noiseBuffer;
 }
 
-/**
- * Процедурный синтез звуков для каждого вида оружия:
- * 0: Glock-18 — звонкий, резкий, высокий щелчок пистолета
- * 1: USP-S — приглушенный выстрел с глушителем ("пш-ш" / глухой хлопок)
- * 2: MP5-SD — мягкий быстрый глушеный ПП
- * 3: Galil AR — сухой среднечастотный автоматный треск
- * 4: AK-47 — плотный, басовитый, тяжелый выстрел
- * 5: SSG-08 — хлесткий, острый щелчок легкой снайперки
- * 6: AWP — громогласный низкочастотный пушечный выстрел с эхом
- */
 function playWeaponShot(weaponId) {
     if (!soundEnabled) return;
     try {
@@ -306,7 +356,7 @@ function playWeaponShot(weaponId) {
         const gain = audioCtx.createGain();
 
         if (weaponId === 0) {
-            // Glock-18: звонкий, высокий, короткий (не громкий, но яркий)
+            // Glock-18: звонкий, высокий, короткий щелчок
             filter.type = 'bandpass';
             filter.frequency.setValueAtTime(2400, now);
             filter.frequency.exponentialRampToValueAtTime(950, now + 0.08);
@@ -315,7 +365,6 @@ function playWeaponShot(weaponId) {
             gain.gain.setValueAtTime(0.065, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
-            // Добавляем легкий металлический призвук затвора
             const ping = audioCtx.createOscillator();
             const pingGain = audioCtx.createGain();
             ping.type = 'triangle';
@@ -333,9 +382,8 @@ function playWeaponShot(weaponId) {
             gain.connect(audioCtx.destination);
             noise.start(now);
             noise.stop(now + 0.095);
-
         } else if (weaponId === 1) {
-            // USP-S: глушитель! Мягкий, приглушенный низкочастотный "пуф"
+            // USP-S: приглушенный выстрел с глушителем
             filter.type = 'lowpass';
             filter.frequency.setValueAtTime(620, now);
             filter.frequency.exponentialRampToValueAtTime(180, now + 0.075);
@@ -343,7 +391,6 @@ function playWeaponShot(weaponId) {
             gain.gain.setValueAtTime(0.06, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
-            // Тихий механический ход затвора
             const bolt = audioCtx.createOscillator();
             const boltGain = audioCtx.createGain();
             bolt.type = 'sine';
@@ -361,9 +408,8 @@ function playWeaponShot(weaponId) {
             gain.connect(audioCtx.destination);
             noise.start(now);
             noise.stop(now + 0.085);
-
         } else if (weaponId === 2) {
-            // MP5-SD: интегрированный глушитель, быстрый мягкий хлопок
+            // MP5-SD: мягкий быстрый глушеный ПП
             filter.type = 'lowpass';
             filter.frequency.setValueAtTime(780, now);
             filter.frequency.exponentialRampToValueAtTime(210, now + 0.065);
@@ -376,7 +422,6 @@ function playWeaponShot(weaponId) {
             gain.connect(audioCtx.destination);
             noise.start(now);
             noise.stop(now + 0.075);
-
         } else if (weaponId === 3) {
             // Galil AR: резкий автоматный выстрел
             filter.type = 'bandpass';
@@ -392,9 +437,8 @@ function playWeaponShot(weaponId) {
             gain.connect(audioCtx.destination);
             noise.start(now);
             noise.stop(now + 0.135);
-
         } else if (weaponId === 4) {
-            // AK-47: тяжелый, плотный, басовитый удар
+            // AK-47: плотный, басовитый удар
             filter.type = 'lowpass';
             filter.frequency.setValueAtTime(1100, now);
             filter.frequency.exponentialRampToValueAtTime(160, now + 0.16);
@@ -419,9 +463,8 @@ function playWeaponShot(weaponId) {
             gain.connect(audioCtx.destination);
             noise.start(now);
             noise.stop(now + 0.175);
-
         } else if (weaponId === 5) {
-            // SSG-08: острый сверхзвуковой щелчок
+            // SSG-08: хлесткий щелчок легкой снайперки
             filter.type = 'highpass';
             filter.frequency.setValueAtTime(900, now);
             filter.frequency.exponentialRampToValueAtTime(300, now + 0.18);
@@ -434,9 +477,8 @@ function playWeaponShot(weaponId) {
             gain.connect(audioCtx.destination);
             noise.start(now);
             noise.stop(now + 0.21);
-
         } else {
-            // AWP: мощнейший раскатистый выстрел с глубоким саб-басом
+            // AWP: мощный раскатистый выстрел с саб-басом
             filter.type = 'lowpass';
             filter.frequency.setValueAtTime(1400, now);
             filter.frequency.exponentialRampToValueAtTime(95, now + 0.36);
@@ -525,7 +567,7 @@ function updateLanguage() {
             el.textContent = i18n[currentLang][key];
         }
     });
-    document.getElementById('btn-lang').textContent = currentLang.toUpperCase();
+    document.getElementById('lang-code').textContent = currentLang.toUpperCase();
     document.getElementById('wave-status').textContent = state.inWave 
         ? i18n[currentLang].combatPhase 
         : i18n[currentLang].prepPhase;
@@ -548,13 +590,13 @@ function updateLanguage() {
 const STORAGE_KEY = 'swamp_perimeter_save_v1';
 
 const WEAPON_TYPES = [
-    { typeId: 0, name: "Glock-18", baseCost: 50,   costMult: 1.55, baseDmg: 6,   fireRate: 1.15, range: 13, color: 0x5c6e63 },
-    { typeId: 1, name: "USP-S",    baseCost: 160,  costMult: 1.60, baseDmg: 12,  fireRate: 1.10, range: 17, color: 0x46594e },
-    { typeId: 2, name: "MP5-SD",   baseCost: 420,  costMult: 1.65, baseDmg: 8,   fireRate: 2.9,  range: 16, color: 0x3d5442 },
-    { typeId: 3, name: "Galil AR", baseCost: 1100, costMult: 1.70, baseDmg: 21,  fireRate: 2.0,  range: 21, color: 0x736343 },
-    { typeId: 4, name: "AK-47",    baseCost: 2800, costMult: 1.75, baseDmg: 42,  fireRate: 1.7,  range: 23, color: 0x7d4934 },
-    { typeId: 5, name: "SSG-08",   baseCost: 6500, costMult: 1.80, baseDmg: 125, fireRate: 0.70, range: 31, color: 0x455d6b },
-    { typeId: 6, name: "AWP",      baseCost: 15000,costMult: 1.85, baseDmg: 320, fireRate: 0.45, range: 38, color: 0x3b5737 }
+    { typeId: 0, name: "Glock-18", baseCost: 50,   upgBase: 15,   upgMult: 1.58, baseDmg: 8,   fireRate: 1.15, range: 13, color: 0x5c6e63 },
+    { typeId: 1, name: "USP-S",    baseCost: 160,  upgBase: 40,   upgMult: 1.55, baseDmg: 12,  fireRate: 1.10, range: 17, color: 0x46594e },
+    { typeId: 2, name: "MP5-SD",   baseCost: 420,  upgBase: 85,   upgMult: 1.52, baseDmg: 8,   fireRate: 2.9,  range: 16, color: 0x3d5442 },
+    { typeId: 3, name: "Galil AR", baseCost: 1100, upgBase: 150,  upgMult: 1.45, baseDmg: 21,  fireRate: 2.0,  range: 21, color: 0x736343 },
+    { typeId: 4, name: "AK-47",    baseCost: 2800, upgBase: 360,  upgMult: 1.48, baseDmg: 42,  fireRate: 1.7,  range: 23, color: 0x7d4934 },
+    { typeId: 5, name: "SSG-08",   baseCost: 6500, upgBase: 820,  upgMult: 1.50, baseDmg: 125, fireRate: 0.80, range: 31, color: 0x455d6b },
+    { typeId: 6, name: "AWP",      baseCost: 15000,upgBase: 1850, upgMult: 1.52, baseDmg: 320, fireRate: 0.45, range: 38, color: 0x3b5737 }
 ];
 
 const SPAWN_POSITIONS = [
@@ -567,6 +609,9 @@ const SPAWN_POSITIONS = [
     [3.4, 0]
 ];
 
+// Цены разблокировки позиций (первые 2 открыты сразу, остальные покупаются по мере прогресса)
+const SLOT_UNLOCK_COSTS = [0, 0, 90, 260, 680, 1750, 4500];
+
 const state = {
     started: false,
     inWave: false,
@@ -574,6 +619,7 @@ const state = {
     scrap: 60, // Шестеренки / детали
     hp: 100,
     maxHp: 100,
+    waveTotalZombies: 0,
     zombiesToSpawn: 0,
     spawnTimer: 0,
     zombies: [],
@@ -581,12 +627,15 @@ const state = {
     slots: SPAWN_POSITIONS.map((pos, idx) => ({
         id: idx,
         pos,
+        unlocked: idx < 2,
+        unlockCost: SLOT_UNLOCK_COSTS[idx] || 5000,
         unitType: null,
         level: 0,
         totalSpent: 0,
         cooldown: 0,
         padMesh: null,
         ringMesh: null,
+        plusGroup: null,
         unitGroup: null
     }))
 };
@@ -599,6 +648,7 @@ function saveGameProgress() {
             wave: state.wave,
             scrap: state.scrap,
             slots: state.slots.map(s => ({
+                unlocked: s.unlocked,
                 typeId: s.unitType ? s.unitType.typeId : null,
                 level: s.level,
                 totalSpent: s.totalSpent
@@ -620,7 +670,13 @@ function loadGameProgress() {
             data.slots.forEach((savedSlot, idx) => {
                 const slot = state.slots[idx];
                 if (!slot) return;
+                slot.unlocked = idx < 2 || savedSlot.unlocked === true;
+                if (slot.plusGroup) {
+                    slot.plusGroup.visible = !slot.unlocked;
+                }
                 if (savedSlot.typeId !== null && WEAPON_TYPES[savedSlot.typeId]) {
+                    slot.unlocked = true;
+                    if (slot.plusGroup) slot.plusGroup.visible = false;
                     const weaponCfg = WEAPON_TYPES[savedSlot.typeId];
                     slot.unitType = weaponCfg;
                     slot.level = Math.max(1, savedSlot.level || 1);
@@ -632,6 +688,8 @@ function loadGameProgress() {
                     slot.padMesh.add(mesh);
                     slot.unitGroup = mesh;
                     slot.ringMesh.material.color.setHex(0x4ade80);
+                } else {
+                    slot.ringMesh.material.color.setHex(slot.unlocked ? 0x6ba383 : 0xd97706);
                 }
             });
         }
@@ -647,17 +705,18 @@ const scene = new THREE.Scene();
 
 const fogColor = 0x16211c;
 scene.background = new THREE.Color(fogColor);
-scene.fog = new THREE.FogExp2(fogColor, 0.022);
+scene.fog = new THREE.FogExp2(fogColor, 0.020);
 
 const camera = new THREE.PerspectiveCamera(45, wrapper.clientWidth / wrapper.clientHeight, 0.1, 120);
 let camAngle = Math.PI / 4;
-let camHeight = 14.5;
-let camRadius = 15.5;
+let camZoom = 1.0; // От 0.85 (ближе) до 1.55 (дальше для большего обзора)
 
 function updateCameraPosition() {
-    camera.position.x = Math.sin(camAngle) * camRadius;
-    camera.position.z = Math.cos(camAngle) * camRadius;
-    camera.position.y = camHeight;
+    const r = 15.5 * camZoom;
+    const h = 14.5 * camZoom;
+    camera.position.x = Math.sin(camAngle) * r;
+    camera.position.z = Math.cos(camAngle) * r;
+    camera.position.y = h;
     camera.lookAt(0, 0.5, 0);
 }
 updateCameraPosition();
@@ -739,7 +798,6 @@ function createFighterMesh(weaponCfg) {
     gun.position.set(0.12, 0.8, 0.25 + gunLength * 0.35);
     unitGroup.add(gun);
 
-    // Глушитель на USP-S и MP5-SD
     if (weaponCfg.typeId === 1 || weaponCfg.typeId === 2) {
         const silGeo = new THREE.CylinderGeometry(0.032, 0.032, 0.22, 6);
         silGeo.rotateX(Math.PI / 2);
@@ -758,6 +816,16 @@ function createFighterMesh(weaponCfg) {
     }
 
     return unitGroup;
+}
+
+function createPlusSignMesh() {
+    const plusGroup = new THREE.Group();
+    const plusMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+    const bar1 = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.14), plusMat);
+    const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.55), plusMat);
+    plusGroup.add(bar1, bar2);
+    plusGroup.position.y = 0.22;
+    return plusGroup;
 }
 
 function buildMilitaryTent() {
@@ -892,12 +960,17 @@ function buildEnvironment() {
 
         const ringGeo = new THREE.RingGeometry(0.62, 0.74, 6);
         ringGeo.rotateX(-Math.PI / 2);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x6ba383, side: THREE.DoubleSide });
+        const ringColor = slot.unlocked ? 0x6ba383 : 0xd97706;
+        const ringMat = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.position.y = 0.09;
         ring.userData = { slotId: slot.id };
         slotGroup.add(ring);
         clickablePads.push(ring);
+
+        const plusGroup = createPlusSignMesh();
+        plusGroup.visible = !slot.unlocked;
+        slotGroup.add(plusGroup);
 
         const hitGeo = new THREE.CylinderGeometry(0.95, 0.95, 1.3, 8);
         const hitMat = new THREE.MeshBasicMaterial({ visible: false });
@@ -910,28 +983,200 @@ function buildEnvironment() {
         scene.add(slotGroup);
         slot.padMesh = slotGroup;
         slot.ringMesh = ring;
+        slot.plusGroup = plusGroup;
     });
 }
 buildEnvironment();
 loadGameProgress();
 
 // ==========================================
-// 5. УПРАВЛЕНИЕ КАМЕРОЙ И ВЫБОР ПЛАТФОРМ
+// 5. УПРАВЛЕНИЕ КАМЕРОЙ, ЗУМ И ПЕРЕСТАНОВКА БОЙЦОВ (DRAG & DROP)
 // ==========================================
-let isDragging = false;
+let isPointerDown = false;
 let pointerDownPos = { x: 0, y: 0 };
 let prevX = 0;
+
+// Переменные для перетаскивания бойцов
+let holdTimer = null;
+let draggingSlotId = null;
+let dragGhostMesh = null;
+let hoverTargetSlotId = null;
+
+// Переменные для щипка двумя пальцами (pinch-to-zoom)
+const activeTouches = new Map();
+let initialPinchDist = null;
+let initialPinchZoom = 1.0;
+
 const raycaster = new THREE.Raycaster();
 const pointerNDC = new THREE.Vector2();
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.35);
+const dragIntersectPoint = new THREE.Vector3();
+
+function getSlotHitAt(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerNDC, camera);
+    const hits = raycaster.intersectObjects(clickablePads, false);
+    if (hits.length > 0) {
+        return hits[0].object.userData.slotId;
+    }
+    return null;
+}
+
+function startDraggingUnit(slotId, clientX, clientY) {
+    const slot = state.slots[slotId];
+    if (!slot || !slot.unitType || !slot.unitGroup) return;
+
+    draggingSlotId = slotId;
+    closeSlotModal();
+    playAtmosphericSound('click');
+
+    // Скрываем оригинал на платформе и создаем полупрозрачный фантом под палец
+    slot.unitGroup.visible = false;
+    dragGhostMesh = createFighterMesh(slot.unitType);
+    const scale = 1 + Math.min(0.32, (slot.level - 1) * 0.02);
+    dragGhostMesh.scale.set(scale * 1.08, scale * 1.08, scale * 1.08);
+    dragGhostMesh.position.set(slot.pos[0], 0.45, slot.pos[1]);
+    scene.add(dragGhostMesh);
+
+    updateDragGhostPosition(clientX, clientY);
+}
+
+function updateDragGhostPosition(clientX, clientY) {
+    if (draggingSlotId === null || !dragGhostMesh) return;
+    const rect = canvas.getBoundingClientRect();
+    pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerNDC, camera);
+
+    if (raycaster.ray.intersectPlane(dragPlane, dragIntersectPoint)) {
+        dragGhostMesh.position.set(dragIntersectPoint.x, 0.45, dragIntersectPoint.z);
+    }
+
+    const targetId = getSlotHitAt(clientX, clientY);
+    hoverTargetSlotId = (targetId !== null && state.slots[targetId].unlocked) ? targetId : null;
+
+    state.slots.forEach(s => {
+        if (s.id === draggingSlotId) {
+            s.ringMesh.material.color.setHex(0xfbbf24);
+        } else if (s.id === hoverTargetSlotId) {
+            s.ringMesh.material.color.setHex(0x38bdf8);
+        } else if (s.unitType) {
+            s.ringMesh.material.color.setHex(0x4ade80);
+        } else {
+            s.ringMesh.material.color.setHex(s.unlocked ? 0x6ba383 : 0xd97706);
+        }
+    });
+}
+
+function finishDraggingUnit() {
+    if (draggingSlotId === null) return;
+    const fromSlot = state.slots[draggingSlotId];
+
+    if (dragGhostMesh) {
+        scene.remove(dragGhostMesh);
+        dragGhostMesh = null;
+    }
+    if (fromSlot.unitGroup) {
+        fromSlot.unitGroup.visible = true;
+    }
+
+    if (hoverTargetSlotId !== null && hoverTargetSlotId !== draggingSlotId) {
+        const toSlot = state.slots[hoverTargetSlotId];
+        if (toSlot.unlocked) {
+            swapSlotsData(fromSlot, toSlot);
+            playAtmosphericSound('click');
+        }
+    }
+
+    draggingSlotId = null;
+    hoverTargetSlotId = null;
+    highlightSelectedSlot(null);
+}
+
+function swapSlotsData(slotA, slotB) {
+    if (slotA.unitGroup) slotA.padMesh.remove(slotA.unitGroup);
+    if (slotB.unitGroup) slotB.padMesh.remove(slotB.unitGroup);
+
+    const tempType = slotA.unitType;
+    const tempLevel = slotA.level;
+    const tempSpent = slotA.totalSpent;
+    const tempCooldown = slotA.cooldown;
+    const tempGroup = slotA.unitGroup;
+
+    slotA.unitType = slotB.unitType;
+    slotA.level = slotB.level;
+    slotA.totalSpent = slotB.totalSpent;
+    slotA.cooldown = slotB.cooldown;
+    slotA.unitGroup = slotB.unitGroup;
+
+    slotB.unitType = tempType;
+    slotB.level = tempLevel;
+    slotB.totalSpent = tempSpent;
+    slotB.cooldown = tempCooldown;
+    slotB.unitGroup = tempGroup;
+
+    if (slotA.unitGroup) slotA.padMesh.add(slotA.unitGroup);
+    if (slotB.unitGroup) slotB.padMesh.add(slotB.unitGroup);
+
+    saveGameProgress();
+}
 
 canvas.addEventListener('pointerdown', (e) => {
-    isDragging = true;
+    activeTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activeTouches.size === 2) {
+        clearTimeout(holdTimer);
+        if (draggingSlotId !== null) finishDraggingUnit();
+        const pts = Array.from(activeTouches.values());
+        initialPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        initialPinchZoom = camZoom;
+        return;
+    }
+
+    isPointerDown = true;
     prevX = e.clientX;
     pointerDownPos = { x: e.clientX, y: e.clientY };
+
+    if (state.started) {
+        const hitSlotId = getSlotHitAt(e.clientX, e.clientY);
+        if (hitSlotId !== null && state.slots[hitSlotId].unlocked && state.slots[hitSlotId].unitType) {
+            clearTimeout(holdTimer);
+            holdTimer = setTimeout(() => {
+                startDraggingUnit(hitSlotId, e.clientX, e.clientY);
+            }, 220);
+        }
+    }
 });
 
 window.addEventListener('pointermove', (e) => {
-    if (!isDragging) return;
+    if (activeTouches.has(e.pointerId)) {
+        activeTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    // Масштабирование щипком двумя пальцами на телефоне
+    if (activeTouches.size === 2 && initialPinchDist) {
+        const pts = Array.from(activeTouches.values());
+        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        const ratio = initialPinchDist / Math.max(10, dist);
+        camZoom = Math.max(0.85, Math.min(1.55, initialPinchZoom * ratio));
+        updateCameraPosition();
+        return;
+    }
+
+    if (!isPointerDown) return;
+
+    if (draggingSlotId !== null) {
+        updateDragGhostPosition(e.clientX, e.clientY);
+        return;
+    }
+
+    const moveDist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+    if (moveDist > 8) {
+        clearTimeout(holdTimer);
+    }
+
     const deltaX = e.clientX - prevX;
     prevX = e.clientX;
     camAngle -= deltaX * 0.008;
@@ -939,8 +1184,21 @@ window.addEventListener('pointermove', (e) => {
 });
 
 window.addEventListener('pointerup', (e) => {
-    if (!isDragging) return;
-    isDragging = false;
+    activeTouches.delete(e.pointerId);
+    if (activeTouches.size < 2) {
+        initialPinchDist = null;
+    }
+
+    clearTimeout(holdTimer);
+
+    if (draggingSlotId !== null) {
+        finishDraggingUnit();
+        isPointerDown = false;
+        return;
+    }
+
+    if (!isPointerDown) return;
+    isPointerDown = false;
 
     const moveDist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
     if (moveDist < 6 && state.started) {
@@ -948,16 +1206,23 @@ window.addEventListener('pointerup', (e) => {
     }
 });
 
+window.addEventListener('pointercancel', (e) => {
+    activeTouches.delete(e.pointerId);
+    clearTimeout(holdTimer);
+    if (draggingSlotId !== null) finishDraggingUnit();
+    isPointerDown = false;
+});
+
+// Отдаление/приближение колесиком мыши на ПК
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    camZoom = Math.max(0.85, Math.min(1.55, camZoom + e.deltaY * 0.0008));
+    updateCameraPosition();
+}, { passive: false });
+
 function handleCanvasTap(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
-    pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-    pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-
-    raycaster.setFromCamera(pointerNDC, camera);
-    const hits = raycaster.intersectObjects(clickablePads, false);
-
-    if (hits.length > 0) {
-        const slotId = hits[0].object.userData.slotId;
+    const slotId = getSlotHitAt(clientX, clientY);
+    if (slotId !== null) {
         playAtmosphericSound('click');
         openSlotModal(slotId);
     } else {
@@ -966,11 +1231,11 @@ function handleCanvasTap(clientX, clientY) {
 }
 
 // ==========================================
-// 6. МЕНЮ УПРАВЛЕНИЯ ТОЧКОЙ
+// 6. МЕНЮ УПРАВЛЕНИЯ ТОЧКОЙ (НАЙМ, ПРОКАЧКА, РАЗБЛОКИРОВКА)
 // ==========================================
 function getUpgradeCost(slot) {
     if (!slot.unitType) return 0;
-    return Math.floor(slot.unitType.baseCost * Math.pow(slot.unitType.costMult, slot.level));
+    return Math.round(slot.unitType.upgBase * Math.pow(slot.unitType.upgMult, slot.level - 1));
 }
 
 function getSlotDamage(slot) {
@@ -985,7 +1250,7 @@ function highlightSelectedSlot(id) {
         } else if (s.unitType) {
             s.ringMesh.material.color.setHex(0x4ade80);
         } else {
-            s.ringMesh.material.color.setHex(0x6ba383);
+            s.ringMesh.material.color.setHex(s.unlocked ? 0x6ba383 : 0xd97706);
         }
     });
 }
@@ -998,15 +1263,34 @@ function openSlotModal(slotId) {
     const modal = document.getElementById('slot-modal');
     const hireList = document.getElementById('modal-hire-list');
     const manageView = document.getElementById('modal-manage-view');
+    const unlockView = document.getElementById('modal-unlock-view');
 
     document.getElementById('modal-slot-title').textContent = `${i18n[currentLang].slotTitle} #${slotId + 1}`;
     modal.classList.remove('hidden');
 
-    if (!slot.unitType) {
+    hireList.classList.add('hidden');
+    manageView.classList.add('hidden');
+    manageView.classList.remove('flex');
+    unlockView.classList.add('hidden');
+    unlockView.classList.remove('flex');
+
+    if (!slot.unlocked) {
+        document.getElementById('modal-unit-name').textContent = i18n[currentLang].lockedSlot;
+        unlockView.classList.remove('hidden');
+        unlockView.classList.add('flex');
+
+        const canAfford = state.scrap >= slot.unlockCost;
+        document.getElementById('unlock-cost-label').textContent = `⚙️ ${slot.unlockCost}`;
+        const unlockBtn = document.getElementById('btn-unlock-slot');
+        unlockBtn.className = `w-full py-2 px-3 rounded-lg font-military text-xs transition flex items-center justify-center gap-2 ${
+            canAfford
+                ? 'bg-[#395e4a] hover:bg-[#47755c] text-white cursor-pointer shadow'
+                : 'bg-[#1c2621] text-[#55695e] cursor-not-allowed'
+        }`;
+        unlockBtn.onclick = () => unlockSlot(slotId);
+    } else if (!slot.unitType) {
         document.getElementById('modal-unit-name').textContent = i18n[currentLang].emptySlot;
         hireList.classList.remove('hidden');
-        manageView.classList.add('hidden');
-        manageView.classList.remove('flex');
 
         hireList.innerHTML = '';
         WEAPON_TYPES.forEach(w => {
@@ -1034,7 +1318,6 @@ function openSlotModal(slotId) {
         const canAfford = state.scrap >= upgCost;
 
         document.getElementById('modal-unit-name').textContent = `${slot.unitType.name} (${i18n[currentLang].lvl} ${slot.level})`;
-        hireList.classList.add('hidden');
         manageView.classList.remove('hidden');
         manageView.classList.add('flex');
 
@@ -1055,6 +1338,22 @@ function openSlotModal(slotId) {
     }
 
     updateSlotModalPosition();
+}
+
+function unlockSlot(slotId) {
+    const slot = state.slots[slotId];
+    if (!slot || slot.unlocked || state.scrap < slot.unlockCost) return;
+
+    state.scrap -= slot.unlockCost;
+    slot.unlocked = true;
+    if (slot.plusGroup) {
+        slot.plusGroup.visible = false;
+    }
+
+    saveGameProgress();
+    playAtmosphericSound('click');
+    updateHUD();
+    openSlotModal(slotId);
 }
 
 function updateSlotModalPosition() {
@@ -1081,7 +1380,7 @@ function updateSlotModalPosition() {
     left = Math.max(10, Math.min(w - modalW - 10, left));
 
     let top = screenY - modalH / 2;
-    top = Math.max(85, Math.min(h - modalH - 85, top));
+    top = Math.max(95, Math.min(h - modalH - 85, top));
 
     modal.style.left = `${left}px`;
     modal.style.top = `${top}px`;
@@ -1096,7 +1395,7 @@ function closeSlotModal() {
 function hireUnitInSlot(slotId, weaponTypeId) {
     const slot = state.slots[slotId];
     const weaponCfg = WEAPON_TYPES[weaponTypeId];
-    if (slot.unitType || state.scrap < weaponCfg.baseCost) return;
+    if (!slot.unlocked || slot.unitType || state.scrap < weaponCfg.baseCost) return;
 
     state.scrap -= weaponCfg.baseCost;
     slot.unitType = weaponCfg;
@@ -1163,6 +1462,19 @@ function updateHUD() {
     document.getElementById('scrap-val').textContent = state.scrap;
     document.getElementById('hp-val').textContent = Math.max(0, Math.ceil((state.hp / state.maxHp) * 100));
     document.getElementById('wave-val').textContent = state.wave;
+    updateWaveProgressBar();
+}
+
+function updateWaveProgressBar() {
+    const bar = document.getElementById('wave-progress-bar');
+    if (!bar) return;
+    if (!state.inWave || state.waveTotalZombies <= 0) {
+        bar.style.width = '100%';
+        return;
+    }
+    const remaining = state.zombiesToSpawn + state.zombies.length;
+    const pct = Math.max(0, Math.min(100, (remaining / state.waveTotalZombies) * 100));
+    bar.style.width = `${pct}%`;
 }
 
 // ==========================================
@@ -1171,13 +1483,16 @@ function updateHUD() {
 function startWave() {
     if (state.inWave) return;
     state.inWave = true;
-    state.zombiesToSpawn = 10 + Math.floor(state.wave * 4.2);
+    const total = 10 + Math.floor(state.wave * 4.2);
+    state.waveTotalZombies = total;
+    state.zombiesToSpawn = total;
     state.spawnTimer = 0.15;
 
     const btn = document.getElementById('btn-battle');
     btn.classList.add('opacity-50', 'pointer-events-none');
     btn.innerHTML = `<span>⏳</span><span>${i18n[currentLang].inBattle}</span>`;
     document.getElementById('wave-status').textContent = i18n[currentLang].combatPhase;
+    updateWaveProgressBar();
 
     playAtmosphericSound('horn');
 }
@@ -1316,6 +1631,15 @@ function animate(now) {
     const dt = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
 
+    // Плавная пульсация плюсиков на закрытых платформах
+    const pulseScale = 1 + Math.sin(now * 0.005) * 0.16;
+    state.slots.forEach(s => {
+        if (!s.unlocked && s.plusGroup) {
+            s.plusGroup.scale.set(pulseScale, 1, pulseScale);
+            s.plusGroup.rotation.y = now * 0.0012;
+        }
+    });
+
     if (!state.started) {
         camAngle += dt * 0.15;
         updateCameraPosition();
@@ -1361,7 +1685,7 @@ function animate(now) {
     }
 
     state.slots.forEach(slot => {
-        if (!slot.unitType || slot.level <= 0) return;
+        if (!slot.unitType || slot.level <= 0 || slot.id === draggingSlotId) return;
         slot.cooldown -= dt;
 
         if (slot.cooldown <= 0 && state.zombies.length > 0) {
@@ -1454,8 +1778,22 @@ function triggerPerimeterBreach() {
 }
 
 // ==========================================
-// 9. ОБРАБОТЧИКИ КНОПОК ИНТЕРФЕЙСА
+// 9. ОБРАБОТЧИКИ КНОПОК ИНТЕРФЕЙСА И НАСТРОЕК
 // ==========================================
+const settingsDropdown = document.getElementById('settings-dropdown');
+
+document.getElementById('btn-settings').addEventListener('click', (e) => {
+    e.stopPropagation();
+    playAtmosphericSound('click');
+    settingsDropdown.classList.toggle('hidden');
+});
+
+window.addEventListener('pointerdown', (e) => {
+    if (!settingsDropdown.classList.contains('hidden') && !e.target.closest('#settings-dropdown') && !e.target.closest('#btn-settings')) {
+        settingsDropdown.classList.add('hidden');
+    }
+});
+
 document.getElementById('btn-start').addEventListener('click', () => {
     state.started = true;
     document.getElementById('main-menu').classList.add('hidden');
@@ -1475,13 +1813,12 @@ document.getElementById('btn-lang').addEventListener('click', () => {
     updateLanguage();
 });
 
-document.getElementById('btn-sound').addEventListener('click', (e) => {
+document.getElementById('btn-sound').addEventListener('click', () => {
     soundEnabled = !soundEnabled;
-    e.target.textContent = soundEnabled ? '🔊' : '🔇';
+    document.getElementById('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
     if (soundEnabled) playAtmosphericSound('click');
 });
 
-// Переиграть текущую волну (ничего не удаляется, восстанавливается только прочность забора)
 document.getElementById('btn-retry-wave').addEventListener('click', () => {
     state.hp = state.maxHp;
     state.inWave = false;
@@ -1497,9 +1834,9 @@ document.getElementById('btn-retry-wave').addEventListener('click', () => {
     playAtmosphericSound('click');
 });
 
-// Открытие окна полного сброса
 document.getElementById('btn-open-wipe').addEventListener('click', () => {
     playAtmosphericSound('click');
+    settingsDropdown.classList.add('hidden');
     document.getElementById('wipe-modal').classList.remove('hidden');
 });
 
@@ -1508,7 +1845,6 @@ document.getElementById('btn-cancel-wipe').addEventListener('click', () => {
     document.getElementById('wipe-modal').classList.add('hidden');
 });
 
-// Полный сброс всего прогресса
 document.getElementById('btn-confirm-wipe').addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
 
@@ -1522,7 +1858,7 @@ document.getElementById('btn-confirm-wipe').addEventListener('click', () => {
     state.hp = 100;
     state.inWave = false;
 
-    state.slots.forEach(s => {
+    state.slots.forEach((s, idx) => {
         if (s.unitGroup) {
             s.padMesh.remove(s.unitGroup);
             s.unitGroup = null;
@@ -1530,7 +1866,9 @@ document.getElementById('btn-confirm-wipe').addEventListener('click', () => {
         s.unitType = null;
         s.level = 0;
         s.totalSpent = 0;
-        s.ringMesh.material.color.setHex(0x6ba383);
+        s.unlocked = idx < 2;
+        if (s.plusGroup) s.plusGroup.visible = !s.unlocked;
+        s.ringMesh.material.color.setHex(s.unlocked ? 0x6ba383 : 0xd97706);
     });
 
     closeSlotModal();
