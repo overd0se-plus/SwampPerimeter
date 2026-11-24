@@ -60,6 +60,13 @@
         .font-tactical {
             font-family: 'Exo 2', sans-serif;
         }
+        /* Отступ сверху с учётом «чёлки» и системной панели устройства */
+        .safe-top {
+            padding-top: calc(0.75rem + env(safe-area-inset-top));
+        }
+        @supports not (padding: env(safe-area-inset-top)) {
+            .safe-top { padding-top: 0.75rem; }
+        }
         ::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -80,7 +87,7 @@
     <canvas id="gameCanvas"></canvas>
 
     <!-- Верхняя панель (Ресурсы, Прогресс волны и Настройки) -->
-    <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start pointer-events-none z-20">
+    <div class="absolute top-0 left-0 right-0 p-3 safe-top flex justify-between items-start pointer-events-none z-20">
         <!-- Статистика в бою -->
         <div id="hud-stats" class="hidden flex-col gap-1.5 pointer-events-auto">
             <div class="bg-[#111915]/90 border border-[#2d3d34] px-3 py-1.5 rounded-xl backdrop-blur-md flex items-center gap-3 shadow-lg">
@@ -115,10 +122,6 @@
                 <button id="btn-lang" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
                     <span data-i18n="langLabel">ЯЗЫК</span>
                     <span id="lang-code" class="text-amber-400">RU</span>
-                </button>
-                <button id="btn-open-changelog" class="w-full px-3 py-2 rounded-lg bg-[#18261f] hover:bg-[#22362c] border border-[#2d4237] text-[#d6dfd9] text-xs font-military flex justify-between items-center transition cursor-pointer">
-                    <span>ЧТО НОВОГО?</span>
-                    <span>❓</span>
                 </button>
                 <button id="btn-open-wipe" class="hidden w-full px-3 py-2 rounded-lg bg-[#2b1616] hover:bg-[#422020] border border-[#5e2c2c] text-red-300 text-xs font-military flex justify-between items-center transition cursor-pointer">
                     <span data-i18n="resetBtn">СБРОС</span>
@@ -243,35 +246,6 @@
             </div>
         </div>
     </div>
-    <!-- Метка версии (появляется вместе с окном "Что нового?") -->
-    <div id="game-version-label" class="hidden absolute bottom-3 left-3 z-[60] text-[11px] text-white/60 font-tactical font-bold tracking-widest pointer-events-none">
-        PILOT 1.1
-    </div>
-
-    <!-- Модальное окно "Что нового?" -->
-    <div id="changelog-modal" class="hidden absolute inset-0 bg-[#0a0f0c]/85 z-[60] flex justify-center items-center p-6 backdrop-blur-md">
-        <div class="bg-[#121a16] border border-[#3b5246] rounded-2xl p-5 max-w-[320px] w-full shadow-2xl flex flex-col max-h-[75vh]">
-            <div class="flex items-start justify-between mb-3">
-                <h3 class="font-military text-lg text-emerald-300 tracking-wide">ЧТО НОВОГО?</h3>
-                <button id="btn-close-changelog" class="w-8 h-8 -mt-1 -mr-1 rounded-lg bg-[#1d2b24] hover:bg-[#2b3f34] border border-[#32473c] text-[#c7d6cd] font-military text-sm transition cursor-pointer flex items-center justify-center" title="Закрыть">✕</button>
-            </div>
-
-            <!-- ═══════════ ВВЕДИТЕ ТЕКСТ ОБНОВЛЕНИЙ НИЖЕ (этот блок) ═══════════
-                 Шаблоны для красоты:
-                 <p class="font-military text-amber-300 mb-1">ЗАГОЛОВОК ОБНОВЛЕНИЯ</p>
-                 <ul class="list-disc pl-4 space-y-1 mb-2">
-                     <li>Изменение</li>
-                     <li>Изменение</li>
-                 </ul>
-            -->
-            <div id="changelog-text" class="overflow-y-auto text-xs text-[#a3b8ac] leading-relaxed pr-1">
-                <p class="font-military text-amber-300 mb-1">Pilot 1.1</p>
-                <p class="mb-3">Внесены следующие изменения: добавлена возможность изменения масштаба камеры; изменена система покупки бойцов; уменьшены цены на улучшение бойцов; изменена скорострельность SSG-08: 0.7 -> 0.8; добавлена полоса окончания волны  </p>
-            </div>
-            <!-- ═══════════ КОНЕЦ БЛОКА ТЕКСТА ОБНОВЛЕНИЙ ═══════════ -->
-        </div>
-    </div>
-
 </div>
 
 <script>
@@ -1922,48 +1896,6 @@ window.addEventListener('resize', () => {
     camera.aspect = wrapper.clientWidth / wrapper.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
-});
-
-// ==========================================
-// ОКНО "ЧТО НОВОГО?" И ВЕРСИЯ ИГРЫ
-// ==========================================
-const GAME_VERSION = "PILOT 1.1"; // <-- ВВЕДИТЕ ВЕРСИЮ ИГРЫ
-
-const versionLabel = document.getElementById('game-version-label');
-versionLabel.textContent = GAME_VERSION;
-
-const changelogModal = document.getElementById('changelog-modal');
-
-function openChangelog() {
-    settingsDropdown.classList.add('hidden'); // прячем меню настроек
-    changelogModal.classList.remove('hidden');
-    versionLabel.classList.remove('hidden');
-    playAtmosphericSound('click');
-}
-
-function closeChangelog() {
-    changelogModal.classList.add('hidden');
-    versionLabel.classList.add('hidden');
-}
-
-document.getElementById('btn-open-changelog').addEventListener('click', (e) => {
-    e.stopPropagation();
-    openChangelog();
-});
-
-document.getElementById('btn-close-changelog').addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeChangelog();
-});
-
-// Клик по замыленному фону закрывает окно
-changelogModal.addEventListener('pointerdown', (e) => {
-    if (e.target === changelogModal) closeChangelog();
-});
-
-// Закрытие по Escape
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !changelogModal.classList.contains('hidden')) closeChangelog();
 });
 
 updateLanguage();
